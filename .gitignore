@@ -1,0 +1,81 @@
+ # -----------------------------------
+# Node / NPM
+# -----------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# -----------------------------------
+# Build output
+# -----------------------------------
+dist/
+build/
+.cache/
+.temp/
+
+# -----------------------------------
+# Environment Variables
+# (IMPORTANT: Never upload secrets)
+# -----------------------------------
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Firebase
+.firebase/
+.firebase-tools.json
+firestore-debug.log
+ui-debug.log
+.firebaserc
+
+# -----------------------------------
+# Logs
+# -----------------------------------
+*.log
+logs/
+debug.log
+
+# -----------------------------------
+# OS/System Files
+# -----------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -----------------------------------
+# IDE / Editor files
+# -----------------------------------
+.vscode/
+.idea/
+*.swp
+
+# -----------------------------------
+# Production runtime files
+# -----------------------------------
+*.pid
+*.seed
+*.pid.lock
+
+# -----------------------------------
+# Temporary files
+# -----------------------------------
+*.tmp
+*.temp
+
+# -----------------------------------
+# Local server files
+# -----------------------------------
+server/uploads/
+server/logs/
+
+# -----------------------------------
+# Misc
+# -----------------------------------
+*.retry
+*.tsbuildinfo
+coverage/
