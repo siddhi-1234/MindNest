@@ -1,0 +1,240 @@
+@keyframes slideFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideFade {
+  animation: slideFade 0.8s ease-out forwards;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+@keyframes calmWave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-calmWave {
+  background: linear-gradient(120deg, #567392, #425b6a, #2d3e50);
+  background-size: 300% 300%;
+  animation: calmWave 12s ease-in-out infinite;
+}
+
+/* ------------------ LOGO GENTLE HOVER ------------------ */
+.logo-hover {
+  transition: transform 0.4s ease, filter 0.5s ease;
+}
+.logo-hover:hover {
+  transform: scale(1.07);
+  filter: drop-shadow(0 0 6px rgba(120, 170, 255, 0.4));
+}
+
+/* ------------------ EMOJI POP ANIMATION ------------------ */
+@keyframes emojiPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1.1);
+  }
+}
+.emoji-pop {
+  animation: emojiPop 0.3s ease forwards;
+}
+
+/* ------------------ RIPPLE CLICK ANIMATION ------------------ */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  width: 5px;
+  height: 5px;
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple:active::after {
+  animation: rippleEffect 0.4s ease-out;
+}
+
+@keyframes rippleEffect {
+  0% {
+    transform: scale(0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(20);
+    opacity: 0;
+  }
+}
+
+/* ------------------ CARD SOFT LIFT ------------------ */
+.card-hover {
+  transition: all 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* ------------------ IMPORTANT CARD PULSE ------------------ */
+@keyframes softPulse {
+  0% {
+    box-shadow: 0 0 0 rgba(255, 80, 80, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(255, 80, 80, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(255, 80, 80, 0.15);
+  }
+}
+.important-pulse {
+  animation: softPulse 2.5s infinite ease-in-out;
+}
+
+/* ------------------ WELCOME TEXT ANIMATION ------------------ */
+@keyframes welcomeFade {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-text {
+  animation: welcomeFade 1s ease-out forwards;
+}
+
+/* ------------------ MICRO-ENCOURAGEMENT POPS ------------------ */
+@keyframes popMicro {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(20px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.1) translateY(0);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.micro-pop {
+  position: fixed;
+  right: 20px;
+  bottom: 100px;
+  font-size: 18px;
+  animation: popMicro 1.2s ease forwards;
+  pointer-events: none;
+}
+
+/* =========================================
+   OPTION 1: ZEN RISE (Slide Up + Fade In)
+   Best for: Professional, calming entrance
+   ========================================= */
+.zen-rise {
+  /* Start hidden and slightly lower */
+  opacity: 0;
+  transform: translateY(30px);
+  /* Run animation once, keep final state */
+  animation: slideUpFade 1.2s ease-out forwards;
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================
+   OPTION 2: GRADIENT SHIMMER (Moving Light)
+   Best for: High-end, premium look
+   ========================================= */
+.gradient-shimmer {
+  /* Create the gradient */
+  background: linear-gradient(
+    to right,
+    #bfdbfe 20%,
+    /* Light Blue */ #ffffff 50%,
+    /* White (The "Shine") */ #bfdbfe 80% /* Light Blue */
+  );
+  background-size: 200% auto;
+
+  /* Clip background to text shape */
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  /* Animate background position */
+  animation: shimmerMove 3s linear infinite;
+}
+
+@keyframes shimmerMove {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* =========================================
+   OPTION 3: GLOW PULSE (Breathing Light)
+   Best for: Mystical, energetic feel
+   ========================================= */
+.glow-pulse {
+  color: white;
+  animation: pulseLight 3s ease-in-out infinite;
+}
+
+@keyframes pulseLight {
+  0%,
+  100% {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.4); /* Soft Glow */
+  }
+  50% {
+    text-shadow: 0 0 25px rgba(59, 130, 246, 0.8),
+      0 0 5px rgba(255, 255, 255, 0.6); /* Strong Glow */
+  }
+}

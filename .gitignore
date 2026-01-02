@@ -1,0 +1,35 @@
+# --- Dependencies ---
+node_modules/
+package-lock.json   # Optional: Some teams keep this, but for solo projects, it's okay to ignore to avoid conflicts
+yarn.lock
+
+# --- Environment Variables (SECRETS) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Dialogflow / Google Cloud Credentials ---
+# THIS IS CRITICAL - Do not upload your chatbot key
+mindnest-key.json
+*.pem
+*.key
+
+# --- Build Outputs ---
+dist/
+build/
+out/
+
+# --- Tools & Logs ---
+ngrok
+ngrok.exe
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vscode/
+.idea/
+
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
