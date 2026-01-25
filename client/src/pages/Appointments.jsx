@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
+import { auth } from "../firebase"; // Ensure firebase is correctly imported
+import { onAuthStateChanged } from "firebase/auth";
 import {
   Calendar,
   Clock,
@@ -17,7 +19,7 @@ import {
   Menu,
 } from "lucide-react";
 
-// ================= Calendar & History Dummy Data (Kept for UI Structure) =================
+// ================= Calendar Dummy Data =================
 
 const AVAILABLE_DATES = [
   { day: "MON", date: 28, status: "disabled" },
@@ -38,18 +40,6 @@ const AVAILABLE_DATES = [
 
 const AVAILABLE_TIMES = ["09:00 AM", "10:30 AM", "01:00 PM", "03:30 PM"];
 
-const INITIAL_HISTORY = [
-  {
-    id: 101,
-    counselorId: "mock_id_1",
-    counselorName: "Dr. Sarah Jenkins", // Placeholder history
-    date: "Oct 12 • 11:00 AM",
-    status: "confirmed",
-    img: "https://i.pravatar.cc/150?img=47",
-    type: "Video Call",
-  },
-];
-
 // ================= Main Component =================
 
 const Appointments = () => {
@@ -65,29 +55,39 @@ const Appointments = () => {
   const historyRef = useRef(null);
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [history, setHistory] = useState(INITIAL_HISTORY);
+  const [history, setHistory] = useState([]);
   const [isBooking, setIsBooking] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // === NEW: Counselors State (Starts Empty) ===
+  // Data States
   const [counselors, setCounselors] = useState([]);
-  const [loadingCounselors, setLoadingCounselors] = useState(true); // Loading state
+  const [loadingCounselors, setLoadingCounselors] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // === NEW: Fetch Counselors from Backend ===
+  // --- 1. Auth Listener ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+        fetchHistory(user.uid);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // --- 2. Fetch Counselors ---
   useEffect(() => {
     const fetchCounselors = async () => {
       try {
-        // Fetch from your Node/MongoDB backend
         const res = await axios.get("http://localhost:5000/api/counselors");
-
         if (res.data) {
-          // Map MongoDB data to match UI structure
           const formattedData = res.data.map((c) => ({
-            id: c._id, // Use MongoDB _id
+            id: c.uid, // Use Firebase UID for linking
+            dbId: c._id,
             name: c.name,
             title: c.title,
-            image: c.image || "https://i.pravatar.cc/150", // Fallback image if null
+            image: c.image || "https://i.pravatar.cc/150",
             tags: c.tags || ["General"],
             description: c.description,
           }));
@@ -102,6 +102,33 @@ const Appointments = () => {
     fetchCounselors();
   }, []);
 
+  // --- 3. Fetch History ---
+  const fetchHistory = async (studentUid) => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/appointments");
+      // Filter for this student
+      const myAppointments = res.data.filter(
+        (appt) => appt.studentUid === studentUid,
+      );
+
+      const formattedHistory = myAppointments
+        .map((appt) => ({
+          id: appt._id,
+          counselorId: appt.counselorId,
+          counselorName: appt.counselorName,
+          date: `${appt.date} • ${appt.time}`,
+          status: appt.status || "pending",
+          type: appt.type,
+          img: appt.counselorImage || "https://i.pravatar.cc/150",
+        }))
+        .reverse();
+
+      setHistory(formattedHistory);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    }
+  };
+
   // Form Data State
   const [formData, setFormData] = useState({
     counselorId: null,
@@ -112,8 +139,6 @@ const Appointments = () => {
     note: "",
   });
 
-  // --- Actions ---
-
   const updateForm = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -123,32 +148,45 @@ const Appointments = () => {
     if (currentStep === 2 && formData.date && formData.time) setCurrentStep(3);
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
+    if (!currentUser) {
+      alert("Please log in to book an appointment.");
+      return;
+    }
+
     setIsBooking(true);
-    setTimeout(() => {
-      // Find the selected counselor object from state
+
+    try {
       const selectedCounselor = counselors.find(
         (c) => c.id === formData.counselorId,
       );
 
-      if (!selectedCounselor) {
-        setIsBooking(false);
-        return;
-      }
+      if (!selectedCounselor) throw new Error("Counselor not found");
 
-      const newAppointment = {
-        id: Date.now(),
+      const appointmentPayload = {
+        studentUid: currentUser.uid,
+        studentName: currentUser.displayName || currentUser.email.split("@")[0],
+        studentEmail: currentUser.email,
         counselorId: selectedCounselor.id,
         counselorName: selectedCounselor.name,
-        date: `Oct ${formData.date} • ${formData.time}`,
-        status: "confirmed",
-        img: selectedCounselor.image,
+        counselorImage: selectedCounselor.image,
+        date: `Oct ${formData.date}`,
+        time: formData.time,
         type: formData.sessionType,
+        concern: formData.concern,
+        note: formData.note,
+        status: "pending",
+        createdAt: new Date().toISOString(),
       };
 
-      setHistory([newAppointment, ...history]);
+      await axios.post(
+        "http://localhost:5000/api/appointments",
+        appointmentPayload,
+      );
+
       setIsBooking(false);
       setShowSuccess(true);
+      fetchHistory(currentUser.uid);
 
       setTimeout(() => {
         setShowSuccess(false);
@@ -156,11 +194,16 @@ const Appointments = () => {
         setFormData((prev) => ({ ...prev, time: null, note: "" }));
         scrollToHistory();
       }, 2500);
-    }, 1500);
+    } catch (error) {
+      console.error("Booking failed:", error);
+      setIsBooking(false);
+      alert("Failed to book. Please try again.");
+    }
   };
 
   const handleCancel = (id) => {
     if (window.confirm("Are you sure you want to cancel this appointment?")) {
+      // In real app: await axios.delete(...)
       setHistory(history.filter((item) => item.id !== id));
     }
   };
@@ -177,7 +220,7 @@ const Appointments = () => {
     topRef.current?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans">
+    <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans flex flex-col">
       {/* ================= FIXED NAVBAR ================= */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-[#0F172A] px-6 py-4 border-b border-gray-800 shadow-md">
         <div className="flex items-center justify-between">
@@ -193,7 +236,7 @@ const Appointments = () => {
             </h1>
           </div>
 
-          {/* Middle: Links (Visible on Desktop) */}
+          {/* Middle: Links (Hidden on Mobile) */}
           <div className="hidden md:flex items-center gap-8 text-sm transition-all">
             <Link
               to="/dashboard"
@@ -221,9 +264,16 @@ const Appointments = () => {
             </Link>
           </div>
 
-          {/* Right: Search & Profile & Mobile Toggle */}
+          {/* Right: User & Mobile Toggle */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 pl-4 md:border-l border-gray-800">
+              {/* User Email (Desktop) */}
+              {currentUser && (
+                <span className="hidden lg:block text-xs text-gray-400 mr-2">
+                  {currentUser.email}
+                </span>
+              )}
+
               <Link
                 to="/settings"
                 className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#6bdfb2] to-blue-500 p-[2px] cursor-pointer hover:scale-105 transition-all shadow-lg shadow-blue-900/20"
@@ -232,6 +282,7 @@ const Appointments = () => {
                   <User className="w-5 h-5 text-gray-300" />
                 </div>
               </Link>
+
               <Link
                 to="/login"
                 title="Logout"
@@ -239,6 +290,7 @@ const Appointments = () => {
               >
                 <LogOut className="w-5 h-5" />
               </Link>
+
               {/* Mobile Hamburger */}
               <button
                 className="md:hidden text-gray-300 hover:text-white"
@@ -253,6 +305,11 @@ const Appointments = () => {
         {/* Mobile Dropdown */}
         {isMenuOpen && (
           <div className="md:hidden absolute top-full left-0 w-full bg-[#1E293B] border-t border-gray-800 shadow-xl py-4 px-6 flex flex-col gap-4 animate-in slide-in-from-top-5">
+            {currentUser && (
+              <div className="text-xs text-gray-500 pb-2 border-b border-gray-700">
+                Signed in as: {currentUser.email}
+              </div>
+            )}
             <Link
               to="/dashboard"
               className="text-gray-300 hover:text-[#6bdfb2]"
@@ -274,6 +331,12 @@ const Appointments = () => {
             >
               Counselling
             </Link>
+            <Link
+              to="/login"
+              className="text-red-400 hover:text-red-300 flex items-center gap-2"
+            >
+              <LogOut size={16} /> Logout
+            </Link>
           </div>
         )}
       </nav>
@@ -282,12 +345,12 @@ const Appointments = () => {
       {/* ================= MAIN CONTENT ================= */}
       <div
         ref={topRef}
-        className="pt-36 p-4 md:p-12 lg:px-24 pb-32 animate-in fade-in duration-700 relative"
+        className="pt-24 md:pt-36 p-4 md:p-12 lg:px-24 pb-32 animate-in fade-in duration-700 relative flex-1"
       >
-        {/* Success Overlay Modal */}
+        {/* Success Modal */}
         {showSuccess && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-[#1E293B] p-8 rounded-3xl border border-[#6bdfb2] shadow-2xl text-center max-w-sm mx-4 transform animate-in zoom-in duration-300">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in px-4">
+            <div className="bg-[#1E293B] p-8 rounded-3xl border border-[#6bdfb2] shadow-2xl text-center w-full max-w-sm transform animate-in zoom-in duration-300">
               <div className="w-16 h-16 bg-[#6bdfb2]/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-[#6bdfb2]" />
               </div>
@@ -295,28 +358,31 @@ const Appointments = () => {
                 Booking Confirmed!
               </h2>
               <p className="text-gray-400">
-                Your session has been scheduled. You can view it in your
-                history.
+                Your session is pending approval. Check history for updates.
               </p>
             </div>
           </div>
         )}
 
-        {/* Header Section */}
+        {/* Page Header */}
         <div className="max-w-6xl mx-auto mb-8 md:mb-12">
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 flex items-center gap-3">
-            <Calendar className="w-6 h-6 md:w-8 md:h-8 text-[#030831]" />
-          </h1>
           <h1 className="text-2xl md:text-4xl font-bold text-white mb-3 flex items-center gap-3">
             <Calendar className="w-6 h-6 md:w-8 md:h-8 text-[#6bdfb2]" />
             Book Appointment
           </h1>
+          <p className="text-gray-400 text-sm md:text-lg">
+            Your journey to mental well-being is private and safe.
+          </p>
 
-          {/* Navigation Tabs */}
+          {/* Tabs */}
           <div className="flex items-center gap-6 mt-8 border-b border-gray-800 pb-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
             <button
               onClick={scrollToTop}
-              className={`flex items-center gap-2 font-semibold pb-4 -mb-4 text-sm md:text-base transition-all ${currentStep < 4 ? "text-[#6bdfb2] border-b-2 border-[#6bdfb2]" : "text-gray-500 hover:text-gray-300"}`}
+              className={`flex items-center gap-2 font-semibold pb-4 -mb-4 text-sm md:text-base transition-all ${
+                currentStep < 4
+                  ? "text-[#6bdfb2] border-b-2 border-[#6bdfb2]"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
             >
               <User className="w-4 h-4 md:w-5 md:h-5" /> Find a Counselor
             </button>
@@ -330,11 +396,15 @@ const Appointments = () => {
         </div>
 
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* ================= LEFT COLUMN (Step 1: LIST COUNSELORS) ================= */}
+          {/* ================= LEFT COLUMN (Step 1) ================= */}
           <div className="lg:col-span-4 space-y-6">
             <div className="flex items-center gap-3 mb-4">
               <div
-                className={`w-8 h-8 min-w-[2rem] rounded-full flex items-center justify-center font-bold text-sm ${currentStep >= 1 ? "bg-blue-600 text-white shadow-blue-glow" : "bg-gray-700 text-gray-400"}`}
+                className={`w-8 h-8 min-w-[2rem] rounded-full flex items-center justify-center font-bold text-sm ${
+                  currentStep >= 1
+                    ? "bg-blue-600 text-white shadow-blue-glow"
+                    : "bg-gray-700 text-gray-400"
+                }`}
               >
                 1
               </div>
@@ -344,15 +414,12 @@ const Appointments = () => {
             </div>
 
             <div className="flex flex-col gap-4">
-              {/* LOADING STATE */}
               {loadingCounselors && (
                 <div className="flex items-center justify-center py-8 text-gray-400">
-                  <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading
-                  counselors...
+                  <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading...
                 </div>
               )}
 
-              {/* EMPTY STATE */}
               {!loadingCounselors && counselors.length === 0 && (
                 <div className="bg-[#1E293B] p-6 rounded-2xl border border-gray-800 text-center text-gray-400">
                   <User className="w-10 h-10 mx-auto mb-3 opacity-20" />
@@ -360,7 +427,6 @@ const Appointments = () => {
                 </div>
               )}
 
-              {/* REAL DATA MAPPING */}
               {!loadingCounselors &&
                 counselors.map((counselor) => (
                   <div
@@ -413,11 +479,19 @@ const Appointments = () => {
           <div className="lg:col-span-8 space-y-8">
             {/* --- STEP 2: Date & Time --- */}
             <div
-              className={`transition-all duration-500 ${currentStep < 2 ? "opacity-50 blur-[1px] pointer-events-none" : "opacity-100"}`}
+              className={`transition-all duration-500 ${
+                currentStep < 2
+                  ? "opacity-50 blur-[1px] pointer-events-none"
+                  : "opacity-100"
+              }`}
             >
               <div className="flex flex-wrap items-center gap-3 mb-6">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${currentStep >= 2 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    currentStep >= 2
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-400"
+                  }`}
                 >
                   2
                 </div>
@@ -425,14 +499,14 @@ const Appointments = () => {
                   Select Availability
                 </h2>
 
-                {/* Responsive Legend */}
+                {/* Legend */}
                 <div className="w-full md:w-auto md:ml-auto flex gap-4 text-xs font-medium pt-2 md:pt-0">
                   <span className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-cyan-500"></div>{" "}
                     Available
                   </span>
                   <span className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                    <div className="w-3 h-3 rounded-full bg-blue-600"></div>{" "}
                     Selected
                   </span>
                 </div>
@@ -490,11 +564,11 @@ const Appointments = () => {
                         handleNextStep();
                       }}
                       className={`py-2 md:py-3 rounded-xl text-xs md:text-sm font-medium border-2 transition-all duration-300
-                                  ${
-                                    formData.time === time
-                                      ? "bg-blue-600 border-blue-400 text-white"
-                                      : "bg-[#0F172A] border-gray-700 text-gray-300 hover:border-[#6bdfb2]"
-                                  }`}
+                        ${
+                          formData.time === time
+                            ? "bg-blue-600 border-blue-400 text-white"
+                            : "bg-[#0F172A] border-gray-700 text-gray-300 hover:border-[#6bdfb2]"
+                        }`}
                     >
                       {time}
                     </button>
@@ -505,11 +579,19 @@ const Appointments = () => {
 
             {/* --- STEP 3: Details & Confirm --- */}
             <div
-              className={`transition-all duration-500 delay-100 ${currentStep < 3 ? "opacity-50 blur-[1px] pointer-events-none" : "opacity-100"}`}
+              className={`transition-all duration-500 delay-100 ${
+                currentStep < 3
+                  ? "opacity-50 blur-[1px] pointer-events-none"
+                  : "opacity-100"
+              }`}
             >
               <div className="flex items-center gap-3 mb-6">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${currentStep >= 3 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    currentStep >= 3
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-400"
+                  }`}
                 >
                   3
                 </div>
@@ -566,13 +648,12 @@ const Appointments = () => {
                       value={formData.note}
                       onChange={(e) => updateForm("note", e.target.value)}
                       rows={3}
-                      placeholder="Is there anything specific you'd like to talk about?"
+                      placeholder="Describe your query here... (Visible to counselor)"
                       className="w-full bg-[#0F172A] border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white text-sm focus:border-[#6bdfb2] outline-none resize-none"
                     ></textarea>
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-4 border-t border-gray-800">
                   <button
                     onClick={() => setCurrentStep(1)}
@@ -643,7 +724,7 @@ const Appointments = () => {
                       className={`px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border ${
                         item.status === "confirmed"
                           ? "bg-green-900/30 text-green-400 border-green-500/50"
-                          : "bg-gray-800 text-gray-400 border-gray-700"
+                          : "bg-yellow-900/30 text-yellow-400 border-yellow-500/50"
                       }`}
                     >
                       {item.status.toUpperCase()}
