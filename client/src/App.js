@@ -11,6 +11,10 @@ import SleepTips from "./pages/SleepTips";
 import StressRelief from "./pages/StressRelief";
 import Settings from "./pages/Settings";
 import Chatbot from "./pages/Chatbot";
+import Appointments from "./pages/Appointments";
+import CounselorLogin from "./pages/CounselorLogin";
+import CounselorDashboard from "./pages/CounselorDashboard";
+import StudentsPage from "./pages/StudentsPage";
 
 function App() {
   return (
@@ -27,6 +31,10 @@ function App() {
         <Route path="/SleepTips" element={<SleepTips />} />
         <Route path="/StressRelief" element={<StressRelief />} />
         <Route path="/Settings" element={<Settings />} />
+        <Route path="/counselling" element={<Appointments />} />
+        <Route path="/counselor/login" element={<CounselorLogin />} />
+        <Route path="/CounselorDashboard" element={<CounselorDashboard />} />
+        <Route path="/StudentsPage" element={<StudentsPage />} />
       </Routes>
       <Chatbot />
     </Router>

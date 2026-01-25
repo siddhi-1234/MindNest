@@ -1,30 +1,30 @@
-import { useState } from "react"; //used to store component data
-import { FiMail, FiLock } from "react-icons/fi"; //mail icon and lock icon
-import { HiEye, HiEyeOff } from "react-icons/hi"; //eye icons for toggling password visibility
-import { useNavigate } from "react-router-dom"; //to navigate between routes
-import { createUserWithEmailAndPassword } from "firebase/auth"; //firebase function to create user with email and password
-import { auth } from "../firebase"; //importing firebase auth instance
+import { useState } from "react";
+import { FiMail, FiLock } from "react-icons/fi";
+import { HiEye, HiEyeOff } from "react-icons/hi";
+import { useNavigate, Link } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 
 export default function SignUp() {
-  const [showPassword, setShowPassword] = useState(false); //state to toggle password visibility
-  const [showConfirm, setShowConfirm] = useState(false); //state to toggle confirm password visibility
-  const [email, setEmail] = useState(""); //state to store email input
-  const [password, setPassword] = useState(""); //state to store password input
-  const [confirmPassword, setConfirmPassword] = useState(""); //state to store confirm password input
-  const [error, setError] = useState(""); //state to store error messages
-  const navigate = useNavigate(); //hook to navigate between routes
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSignUp = async () => {
-    setError(""); //Resets any previous error message
+    setError("");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
-      return; //Prevents Firebase from creating the user
+      return;
     }
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password); //Calls Firebase Authentication Parameters: auth → Firebase auth instance, email → user’s email, password → user’s password
-      navigate("/Login"); //Redirects user to the login page upon successful sign-up
+      await createUserWithEmailAndPassword(auth, email, password);
+      navigate("/Login");
     } catch (err) {
       setError(err.message);
     }
@@ -32,88 +32,129 @@ export default function SignUp() {
 
   return (
     <div
-      className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat flex items-center justify-center p-4"
+      className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 overflow-y-auto" // Added overflow-y-auto for safety on small screens
       style={{ backgroundImage: "url('/bg.jpeg')" }}
     >
-      <div className="w-full max-w-md bg-[#0f1d16]/70 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/10">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="MindNest" className="w-15 h-12" />
-            <h1 className="text-3xl font-bold text-white">MindNest</h1>
+      {/* Reduced padding from p-6/p-8 to p-5/p-6 and max-width */}
+      <div className="w-full max-w-sm bg-[#0f1d16]/80 backdrop-blur-xl rounded-2xl p-5 md:p-6 border border-white/10 shadow-2xl">
+        {/* Header - Compacted margins */}
+        <div className="flex flex-col items-center mb-4">
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="MindNest"
+              className="w-10 h-10 object-contain"
+            />
+            <h1 className="text-2xl font-bold text-white tracking-wide">
+              MindNest
+            </h1>
           </div>
-          <p className="text-white text-sm mt-3">
-            A safe space for your well-being starts here.
+          <p className="text-gray-400 text-xs mt-1">
+            Create your safe space account.
           </p>
         </div>
 
-        {/*Only show this paragraph if there is an error*/}
         {error && (
-          <p className="text-red-400 text-sm mb-3 text-center">{error}</p>
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2 mb-3 text-center">
+            <p className="text-red-200 text-xs">{error}</p>
+          </div>
         )}
 
-        {/* Email */}
-        <label className="text-gray-300 text-sm">Email</label>
-        <div className="mt-2 mb-5 flex items-center bg-[#111f18] rounded-xl px-3 h-12">
-          <FiMail className="text-gray-400" />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="ml-3 w-full bg-transparent outline-none text-gray-200"
-            placeholder="Enter your email address"
-          />
+        {/* Inputs Group - Reduced height (h-10) and margins */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-gray-400 text-xs ml-1 font-medium">
+              Email
+            </label>
+            <div className="mt-1 flex items-center bg-[#111f18] border border-white/5 rounded-lg px-3 h-10 transition-colors focus-within:border-green-500/50">
+              <FiMail className="text-gray-500" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="ml-3 w-full bg-transparent outline-none text-sm text-gray-200 placeholder-gray-600"
+                placeholder="Enter your email"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-gray-400 text-xs ml-1 font-medium">
+              Password
+            </label>
+            <div className="mt-1 flex items-center bg-[#111f18] border border-white/5 rounded-lg px-3 h-10 transition-colors focus-within:border-green-500/50">
+              <FiLock className="text-gray-500" />
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="ml-3 w-full bg-transparent outline-none text-sm text-gray-200 placeholder-gray-600"
+                placeholder="Create password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                {showPassword ? <HiEyeOff /> : <HiEye />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-gray-400 text-xs ml-1 font-medium">
+              Confirm Password
+            </label>
+            <div className="mt-1 flex items-center bg-[#111f18] border border-white/5 rounded-lg px-3 h-10 transition-colors focus-within:border-green-500/50">
+              <FiLock className="text-gray-500" />
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="ml-3 w-full bg-transparent outline-none text-sm text-gray-200 placeholder-gray-600"
+                placeholder="Confirm password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                {showConfirm ? <HiEyeOff /> : <HiEye />}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Password */}
-        <label className="text-gray-300 text-sm">Password</label>
-        <div className="mt-2 flex items-center bg-[#111f18] rounded-xl px-3 h-12">
-          <FiLock className="text-gray-400" />
-          <input
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="ml-3 w-full bg-transparent outline-none text-gray-200"
-            placeholder="Create a password"
-          />
-          <button onClick={() => setShowPassword(!showPassword)}>
-            {showPassword ? <HiEyeOff /> : <HiEye />}
-          </button>
-        </div>
-
-        {/* Confirm Password */}
-        <label className="mt-5 block text-gray-300 text-sm">
-          Confirm Password
-        </label>
-        <div className="mt-2 mb-6 flex items-center bg-[#111f18] rounded-xl px-3 h-12">
-          <FiLock className="text-gray-400" />
-          <input
-            type={showConfirm ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="ml-3 w-full bg-transparent outline-none text-gray-200"
-            placeholder="Confirm your password"
-          />
-          <button onClick={() => setShowConfirm(!showConfirm)}>
-            {showConfirm ? <HiEyeOff /> : <HiEye />}
-          </button>
-        </div>
-
-        <button
-          onClick={handleSignUp}
-          className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold py-3 rounded-xl"
-        >
-          Sign Up
-        </button>
-
-        <p className="text-center text-sm mt-4">
-          <span
-            onClick={() => navigate("/Login")}
-            className="text-green-400 cursor-pointer hover:underline"
+        {/* Buttons - Compacted top margin */}
+        <div className="mt-5">
+          <button
+            onClick={handleSignUp}
+            className="w-full bg-green-500 hover:bg-green-600 active:scale-[0.98] text-black font-bold py-2.5 rounded-lg transition-all text-sm shadow-lg shadow-green-500/20"
           >
-            Already have an account? Log In
-          </span>
-        </p>
+            Sign Up
+          </button>
+
+          <p className="text-center text-xs mt-3 text-gray-400">
+            Already have an account?{" "}
+            <span
+              onClick={() => navigate("/Login")}
+              className="text-green-400 cursor-pointer hover:text-green-300 font-medium transition-colors"
+            >
+              Log In
+            </span>
+          </p>
+        </div>
+
+        {/* Provider Link - Reduced padding */}
+        <div className="mt-4 pt-4 border-t border-white/10 text-center">
+          <Link
+            to="/counselor/login"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-green-500/80 hover:text-green-400 transition-colors bg-green-500/10 px-3 py-1.5 rounded-full"
+          >
+            Are you a professional?{" "}
+            <span className="underline">Access Counsellor Portal</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

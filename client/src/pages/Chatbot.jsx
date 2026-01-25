@@ -6,14 +6,12 @@ import {
   Send,
   AlertTriangle,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// ACCEPT PROPS FOR EXTERNAL CONTROL
 const Chatbot = ({ isOpenProp, setIsOpenProp, autoSendQuery }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-
-  // Determine if controlled by parent (Dashboard) or self
   const isControlled = isOpenProp !== undefined;
   const isOpen = isControlled ? isOpenProp : internalIsOpen;
   const setIsOpen = isControlled ? setIsOpenProp : setInternalIsOpen;
@@ -30,63 +28,77 @@ const Chatbot = ({ isOpenProp, setIsOpenProp, autoSendQuery }) => {
   const navigate = useNavigate();
   const hasAutoSent = useRef(false);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
 
-  // Handle Auto-send from Dashboard triggers
   useEffect(() => {
     if (isOpen && autoSendQuery && !hasAutoSent.current) {
       handleSend(autoSendQuery);
       hasAutoSent.current = true;
     }
-    if (!isOpen) {
-      hasAutoSent.current = false;
-    }
+    if (!isOpen) hasAutoSent.current = false;
   }, [isOpen, autoSendQuery]);
 
   const handleSend = async (textToSend = input) => {
     if (!textToSend.trim()) return;
 
-    const userMessage = { text: textToSend, isBot: false };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, { text: textToSend, isBot: false }]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/chat", {
+      const res = await axios.post("http://localhost:5000/api/chat", {
         text: textToSend,
         sessionId: "user-session-123",
       });
 
-      const data = response.data;
-      let botMessages = [{ text: data.reply, isBot: true }];
+      console.log("👉 RAW RESPONSE:", res.data); // Keep this for debugging
 
-      if (data.payload && data.payload.length > 0) {
-        data.payload.forEach((msg) => {
-          if (msg.payload && msg.payload.mindnest) {
-            const customData = msg.payload.mindnest;
+      const botMessages = [];
+
+      // 1. Add Text Reply
+      if (res.data.reply) {
+        botMessages.push({ text: res.data.reply, isBot: true });
+      }
+
+      // 2. Add Buttons (The "Universal Unwrapper")
+      if (res.data.payload) {
+        const payloads = Array.isArray(res.data.payload)
+          ? res.data.payload
+          : [res.data.payload];
+
+        payloads.forEach((item) => {
+          // STRATEGY: Look for 'mindnest' data everywhere
+          let data = null;
+
+          // Case A: Direct match
+          if (item.mindnest) data = item.mindnest;
+          // Case B: Inside 'payload'
+          else if (item.payload && item.payload.mindnest)
+            data = item.payload.mindnest;
+          // Case C: Inside 'text' (Dialogflow glitch)
+          else if (item.text && item.text.mindnest) data = item.text.mindnest;
+
+          // If we found valid button data, add it
+          if (data && data.options) {
             botMessages.push({
               isBot: true,
-              type: customData.type,
-              options: customData.options || [],
-              link: customData.link || "",
-              alertText: customData.text || "",
+              type: data.type || "suggestion_chips",
+              options: data.options,
+              link: data.link,
+              alertText: data.text || res.data.reply,
             });
           }
         });
       }
 
       setMessages((prev) => [...prev, ...botMessages]);
-    } catch (error) {
-      console.error("Chat Error:", error);
+    } catch (err) {
+      console.error(err);
       setMessages((prev) => [
         ...prev,
-        {
-          text: "I'm having trouble connecting. Please try again.",
-          isBot: true,
-        },
+        { text: "Connection error. Please try again.", isBot: true },
       ]);
     } finally {
       setIsLoading(false);
@@ -94,34 +106,39 @@ const Chatbot = ({ isOpenProp, setIsOpenProp, autoSendQuery }) => {
   };
 
   const renderSpecialContent = (msg) => {
-    if (msg.type === "suggestion_chips") {
+    // 🟢 SUGGESTION CHIPS (Buttons)
+    if (msg.type === "suggestion_chips" && msg.options?.length) {
       return (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mt-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {msg.options.map((opt, i) => (
             <button
               key={i}
-              onClick={() => {
-                if (opt.link) navigate(opt.link);
-                else handleSend(opt.text);
-              }}
-              className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-full transition flex items-center gap-1 shadow-sm"
+              onClick={() =>
+                opt.link ? navigate(opt.link) : handleSend(opt.text)
+              }
+              className="group flex items-center gap-1.5 text-xs font-semibold bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 hover:border-blue-300 px-4 py-2 rounded-full transition-all shadow-sm hover:shadow-md"
             >
-              {opt.text} <ChevronRight className="w-3 h-3" />
+              {opt.text}
+              <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
             </button>
           ))}
         </div>
       );
     }
+
+    // 🔴 CRISIS ALERT
     if (msg.type === "crisis_alert") {
       return (
-        <div className="mt-2 bg-red-50 border border-red-200 p-3 rounded-xl">
-          <div className="flex items-center gap-2 text-red-600 font-bold mb-1">
+        <div className="mt-3 bg-red-50/90 border border-red-200 p-4 rounded-xl shadow-sm animate-in zoom-in-95 duration-300">
+          <div className="flex items-center gap-2 text-red-700 font-bold text-sm mb-1">
             <AlertTriangle className="w-4 h-4" /> Crisis Support
           </div>
-          <p className="text-xs text-red-700 mb-2">{msg.alertText}</p>
+          <p className="text-xs text-red-800 mb-3 leading-relaxed">
+            {msg.alertText}
+          </p>
           <button
             onClick={() => navigate(msg.link)}
-            className="w-full bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-2 rounded-lg transition shadow-sm"
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-2"
           >
             Get Help Immediately
           </button>
@@ -133,106 +150,108 @@ const Chatbot = ({ isOpenProp, setIsOpenProp, autoSendQuery }) => {
 
   return (
     <>
-      {/* === TOGGLE BUTTON === */}
-      {/* Hidden when chat is open to avoid clutter */}
+      {/* === FLOATING TOGGLE BUTTON === */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-full shadow-2xl transition-all z-50 hover:scale-110 ${
-          isOpen ? "hidden" : "flex"
+        className={`fixed z-50 bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${
+          isOpen
+            ? "bg-gray-800 text-white rotate-90 opacity-0 pointer-events-none"
+            : "bg-blue-600 text-white hover:bg-blue-700 opacity-100"
         }`}
       >
         <MessageCircle className="w-6 h-6" />
       </button>
 
       {/* === CHAT WINDOW === */}
-      {isOpen && (
-        <div
-          className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-50 
-                     w-[90vw] max-w-[380px] h-[550px] max-h-[80vh] 
-                     bg-[#1E293B] border border-gray-700 rounded-2xl shadow-2xl 
-                     flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300 font-sans"
-        >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-blue-600 absolute right-0 bottom-0"></div>
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">
-                  AI
-                </div>
+      {/* RESPONSIVE CLASSES EXPLAINED:
+          - fixed bottom-0 right-0 w-full h-[100dvh]: On mobile, it covers the whole screen.
+          - sm:bottom-6 sm:right-6 sm:w-[380px] sm:h-[600px]: On desktop/tablet, it floats.
+          - sm:max-h-[85vh]: Ensures it never gets too tall for small laptops.
+      */}
+      <div
+        className={`fixed z-50 flex flex-col bg-[#0F172A] shadow-2xl overflow-hidden transition-all duration-300 ease-in-out border border-gray-800
+        ${
+          isOpen
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 translate-y-12 pointer-events-none"
+        }
+        bottom-0 right-0 w-full h-[100dvh] rounded-none 
+        sm:bottom-6 sm:right-6 sm:w-[380px] sm:h-[600px] sm:max-h-[85vh] sm:rounded-2xl
+        `}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex justify-between items-center shrink-0 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <MessageCircle className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="text-white font-bold text-sm">
-                  MindNest Assistant
-                </h3>
-                <span className="text-blue-100 text-xs">
-                  Always here to listen
-                </span>
-              </div>
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-blue-600 rounded-full"></span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div>
+              <h3 className="font-bold text-white text-sm">MindNest AI</h3>
+              <p className="text-blue-100 text-xs">Always here to listen</p>
+            </div>
           </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0F172A] scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {messages.map((msg, index) => (
+        {/* Messages Area */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${msg.isBot ? "justify-start" : "justify-end"}`}
+            >
               <div
-                key={index}
-                className={`flex ${
-                  msg.isBot ? "justify-start" : "justify-end"
+                className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                  msg.isBot
+                    ? "bg-[#1E293B] text-gray-200 rounded-tl-none border border-gray-700/50"
+                    : "bg-blue-600 text-white rounded-tr-none"
                 }`}
               >
-                <div
-                  className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                    msg.isBot
-                      ? "bg-[#1E293B] text-gray-200 rounded-tl-none border border-gray-700"
-                      : "bg-blue-600 text-white rounded-tr-none"
-                  }`}
-                >
-                  {msg.text}
-                  {msg.type && renderSpecialContent(msg)}
-                </div>
+                {msg.text && <p>{msg.text}</p>}
+                {msg.isBot && renderSpecialContent(msg)}
               </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-[#1E293B] p-4 rounded-2xl rounded-tl-none border border-gray-700">
-                  <div className="flex gap-1.5">
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-75"></div>
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></div>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+            </div>
+          ))}
 
-          {/* Input Area */}
-          <div className="p-3 bg-[#1E293B] border-t border-gray-700 flex gap-2 shrink-0">
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-[#1E293B] px-4 py-3 rounded-2xl rounded-tl-none border border-gray-700/50 flex items-center gap-2 text-gray-400 text-xs">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Thinking...
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className="p-3 bg-[#0F172A] border-t border-gray-800 shrink-0">
+          <div className="flex gap-2 bg-[#1E293B] p-1.5 rounded-full border border-gray-700 focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
             <input
-              type="text"
-              placeholder="Type a message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 bg-[#0F172A] text-white text-sm rounded-full px-4 py-3 border border-gray-700 focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              className="flex-1 bg-transparent text-white px-4 py-2 text-sm focus:outline-none placeholder-gray-500"
+              placeholder="Type your message..."
             />
             <button
               onClick={() => handleSend()}
-              disabled={isLoading || !input.trim()}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white w-11 h-11 flex items-center justify-center rounded-full transition shadow-lg"
+              disabled={!input.trim() || isLoading}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white p-2.5 rounded-full transition-all shadow-sm"
             >
-              <Send className="w-5 h-5 ml-0.5" />
+              <Send className="w-4 h-4" />
             </button>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 };

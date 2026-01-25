@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+  updateProfile,
+  updateEmail,
+  sendPasswordResetEmail,
+  deleteUser,
+} from "firebase/auth";
 import {
   User,
   Bell,
   Lock,
-  Moon,
   LogOut,
   ChevronRight,
-  Camera,
   Save,
   Shield,
   Mail,
@@ -15,22 +21,23 @@ import {
   Menu,
   X,
   Settings as SettingsIcon,
+  Loader2, // Added for loading spinner
 } from "lucide-react";
 
-import Chatbot from "../pages/Chatbot"; // Ensure path is correct
+import Chatbot from "../pages/Chatbot";
 
 const Settings = () => {
   // === STATE ===
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sendingReset, setSendingReset] = useState(false); // NEW: Track reset email status
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false); // Navbar dropdown
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Form States
   const [formData, setFormData] = useState({
-    displayName: "Student Name",
-    email: "student@university.edu",
-    bio: "Computer Science Major | Level 3",
+    displayName: "",
+    email: "",
   });
 
   // Toggle States
@@ -43,17 +50,20 @@ const Settings = () => {
   // === AUTH CHECK ===
   useEffect(() => {
     const auth = getAuth();
-    onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        setFormData((prev) => ({
-          ...prev,
+        setFormData({
           displayName: currentUser.displayName || "Student Name",
-          email: currentUser.email || "student@university.edu",
-        }));
+          email: currentUser.email || "",
+        });
+      } else {
+        // Redirect if not logged in
+        window.location.href = "/";
       }
       setLoading(false);
     });
+    return () => unsubscribe();
   }, []);
 
   // === HANDLERS ===
@@ -61,9 +71,110 @@ const Settings = () => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSave = () => {
-    // Logic to update profile in Firebase would go here
-    alert("Settings saved successfully! ✅");
+  // 1. UPDATE PROFILE & EMAIL
+  const handleSave = async () => {
+    const auth = getAuth();
+    if (!auth.currentUser) return;
+
+    try {
+      // Update Display Name
+      if (formData.displayName !== user.displayName) {
+        await updateProfile(auth.currentUser, {
+          displayName: formData.displayName,
+        });
+      }
+
+      // Update Email
+      // NOTE: This might fail if the user hasn't signed in recently (Firebase security rule).
+      if (formData.email !== user.email) {
+        await updateEmail(auth.currentUser, formData.email);
+      }
+
+      alert("Settings saved successfully! ✅");
+
+      // Force update local state
+      setUser({
+        ...auth.currentUser,
+        displayName: formData.displayName,
+        email: formData.email,
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      if (error.code === "auth/requires-recent-login") {
+        alert(
+          "Security Alert: Please sign out and sign back in to change your email address."
+        );
+      } else {
+        alert("Error updating profile: " + error.message);
+      }
+    }
+  };
+
+  // 2. CHANGE PASSWORD (REAL-TIME FEEDBACK)
+  const handleChangePassword = async () => {
+    const auth = getAuth();
+    const emailToSend = formData.email || user?.email;
+
+    if (!emailToSend) {
+      alert("Error: No email address found for this account.");
+      return;
+    }
+
+    const confirm = window.confirm(
+      `Send a password reset email to ${emailToSend}?`
+    );
+
+    if (confirm) {
+      try {
+        setSendingReset(true); // Start loading UI
+        await sendPasswordResetEmail(auth, emailToSend);
+
+        // Success Message
+        alert(
+          `✅ Password reset email sent to ${emailToSend}!\n\nPlease check your Inbox and Spam folder.`
+        );
+      } catch (error) {
+        console.error("Error sending reset email:", error);
+        alert("Failed to send email: " + error.message);
+      } finally {
+        setSendingReset(false); // Stop loading UI
+      }
+    }
+  };
+
+  // 3. DELETE ACCOUNT
+  const handleDeleteAccount = async () => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) return;
+
+    const confirm1 = window.confirm(
+      "Are you sure you want to delete your account? This cannot be undone."
+    );
+
+    if (confirm1) {
+      const confirm2 = window.confirm(
+        "Final warning: All your journal entries and data will be lost forever. Delete Account?"
+      );
+
+      if (confirm2) {
+        try {
+          await deleteUser(currentUser);
+          alert("Account deleted. Goodbye.");
+          window.location.href = "/";
+        } catch (error) {
+          console.error("Error deleting account:", error);
+          if (error.code === "auth/requires-recent-login") {
+            alert(
+              "Security Alert: Please sign out and sign back in to confirm your identity before deleting your account."
+            );
+          } else {
+            alert("Error deleting account: " + error.message);
+          }
+        }
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -71,6 +182,13 @@ const Settings = () => {
     await signOut(auth);
     window.location.href = "/";
   };
+
+  if (loading)
+    return (
+      <div className="min-h-screen bg-[#0F172A] pt-20 text-white text-center flex items-center justify-center">
+        <Loader2 className="animate-spin mr-2" /> Loading settings...
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-gray-200 pt-20 relative">
@@ -132,7 +250,7 @@ const Settings = () => {
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 top-12 w-56 bg-[#1E293B] border border-gray-700 rounded-xl shadow-2xl py-2 z-50">
+            <div className="absolute right-0 top-12 w-56 bg-[#1E293B] border border-gray-700 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-2">
               <div className="px-4 py-3 border-b border-gray-700">
                 <p className="text-sm text-white font-bold">My Account</p>
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
@@ -149,7 +267,7 @@ const Settings = () => {
 
         {/* Mobile Menu Content */}
         {mobileMenuOpen && (
-          <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50">
+          <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50 animate-in slide-in-from-top-5">
             <a
               href="/dashboard"
               className="text-gray-300 p-4 border-b border-gray-700"
@@ -170,7 +288,7 @@ const Settings = () => {
             </a>
             <button
               onClick={handleLogout}
-              className="text-red-400 p-4 text-left flex items-center gap-2"
+              className="text-red-400 p-4 text-left flex items-center gap-2 w-full"
             >
               <LogOut size={18} /> Sign Out
             </button>
@@ -200,7 +318,6 @@ const Settings = () => {
             </div>
 
             <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-start">
-              {/* Form Fields */}
               <div className="flex-1 w-full space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
@@ -226,24 +343,12 @@ const Settings = () => {
                     <input
                       type="email"
                       value={formData.email}
-                      disabled
-                      className="w-full bg-[#0F172A]/50 border border-gray-700 rounded-lg px-4 py-2 text-gray-400 cursor-not-allowed"
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none transition"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Bio / Status
-                  </label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) =>
-                      setFormData({ ...formData, bio: e.target.value })
-                    }
-                    rows="2"
-                    className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none transition resize-none"
-                  />
                 </div>
 
                 <div className="pt-2">
@@ -267,7 +372,7 @@ const Settings = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Toggle Item 1 */}
+              {/* Daily Checkin Toggle */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
@@ -298,7 +403,7 @@ const Settings = () => {
                 </button>
               </div>
 
-              {/* Toggle Item 2 */}
+              {/* Counselor Messages Toggle */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
@@ -306,10 +411,10 @@ const Settings = () => {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">
-                      Counselor Messages
+                      Counselor Messages (Email)
                     </h4>
                     <p className="text-xs text-gray-400">
-                      Email alerts when your counselor replies.
+                      Get email alerts when a counselor replies.
                     </p>
                   </div>
                 </div>
@@ -328,24 +433,6 @@ const Settings = () => {
                   ></div>
                 </button>
               </div>
-
-              {/* Toggle Item 3 (Theme - Disabled visual) */}
-              <div className="flex items-center justify-between opacity-75">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-500/10 rounded-lg text-gray-400">
-                    <Moon size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Dark Mode</h4>
-                    <p className="text-xs text-gray-400">
-                      Theme is currently locked to Dark.
-                    </p>
-                  </div>
-                </div>
-                <div className="text-xs font-bold text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full">
-                  ACTIVE
-                </div>
-              </div>
             </div>
           </section>
 
@@ -357,14 +444,27 @@ const Settings = () => {
               </h2>
             </div>
             <div className="p-6">
-              <button className="w-full flex items-center justify-between p-4 bg-[#0F172A] rounded-xl border border-gray-700 hover:border-gray-500 transition group">
+              {/* CHANGE PASSWORD BUTTON */}
+              <button
+                onClick={handleChangePassword}
+                disabled={sendingReset}
+                className="w-full flex items-center justify-between p-4 bg-[#0F172A] rounded-xl border border-gray-700 hover:border-gray-500 transition group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <div className="flex items-center gap-3">
-                  <Lock className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
+                  {sendingReset ? (
+                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
+                  )}
                   <span className="text-sm font-medium text-gray-300 group-hover:text-white transition">
-                    Change Password
+                    {sendingReset
+                      ? "Sending Reset Email..."
+                      : "Change Password"}
                   </span>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-500" />
+                {!sendingReset && (
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                )}
               </button>
 
               <div className="mt-8 pt-6 border-t border-gray-700/50">
@@ -375,7 +475,10 @@ const Settings = () => {
                   Once you delete your account, there is no going back. Please
                   be certain.
                 </p>
-                <button className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-6 py-2 rounded-lg text-sm font-bold transition">
+                <button
+                  onClick={handleDeleteAccount}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-6 py-2 rounded-lg text-sm font-bold transition"
+                >
                   Delete Account
                 </button>
               </div>

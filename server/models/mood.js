@@ -1,30 +1,16 @@
-const mongoose = require("mongoose"); //Importing mongoose to define a schema and model for Mood entries
+import mongoose from "mongoose";
 
 const moodSchema = new mongoose.Schema(
   {
-    //Defining the schema for Mood entries
-    userId: {
-      //Each mood entry is associated with a user
-      type: String,
-      required: true,
-    },
-    mood: {
-      //The mood value (e.g., "happy", "sad", etc.)
-      type: String,
-      required: true,
-    },
-    note: {
-      //An optional note associated with the mood entry
-      type: String,
-      default: "",
-    },
+    userId: { type: String, required: true },
+    mood: { type: String, required: true },
+    note: { type: String, default: "" },
     date: {
-      //The date when the mood entry was created
       type: String,
-      default: Date.now,
+      default: () => new Date().toISOString().split("T")[0],
     },
   },
-  { timestamps: true } //Automatically manage createdAt and updatedAt timestamps
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("mood", moodSchema); //Exporting the Mood model based on the defined schema
+export default mongoose.model("Mood", moodSchema);

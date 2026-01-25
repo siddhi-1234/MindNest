@@ -1,6 +1,5 @@
 # --- Dependencies ---
 node_modules/
-package-lock.json   # Optional: Some teams keep this, but for solo projects, it's okay to ignore to avoid conflicts
 yarn.lock
 
 # --- Environment Variables (SECRETS) ---

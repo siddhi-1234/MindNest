@@ -15,9 +15,9 @@ yarn-error.log*
 # =========================
 # Frontend (React)
 # =========================
-client/node_modules/
-client/build/
-client/dist/
+node_modules/
+build/
+dist/
 
 # =========================
 # Backend (Node/Express)
