@@ -39,6 +39,7 @@ const counselorSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  schedule: { type: Object, default: {} },
 });
 
 module.exports = mongoose.model("Counselor", counselorSchema);

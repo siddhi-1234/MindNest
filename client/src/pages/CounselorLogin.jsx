@@ -107,7 +107,7 @@ const CounselorLogin = () => {
         await axios.post("http://localhost:5000/api/counselors", newCounselor);
 
         alert("Account Created Successfully!");
-        navigate("/counselor-dashboard");
+        navigate("/CounselorDashboard");
       }
     } catch (err) {
       console.error(err);

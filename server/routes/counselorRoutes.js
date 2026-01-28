@@ -46,4 +46,17 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.put("/:uid", async (req, res) => {
+  try {
+    const counselor = await Counselor.findOneAndUpdate(
+      { uid: req.params.uid },
+      { $set: { schedule: req.body.schedule } },
+      { new: true },
+    );
+    res.json(counselor);
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;

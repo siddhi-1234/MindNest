@@ -10,7 +10,9 @@ import {
   Edit2,
   Save,
   MessageCircle,
-  Users,
+  Users, // Added for mobile toggle
+  Clock,
+  Menu,
 } from "lucide-react";
 import {
   BarChart,
@@ -22,6 +24,19 @@ import {
 } from "recharts";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+
+// ================= Standard Working Hours =================
+const STANDARD_TIME_SLOTS = [
+  "09:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "01:00 PM",
+  "02:00 PM",
+  "03:00 PM",
+  "04:00 PM",
+];
 
 // ================= SUB-COMPONENTS =================
 
@@ -101,7 +116,6 @@ const MoodChartWidget = ({ moodData }) => (
   </div>
 );
 
-// ================= NOTE EDITOR COMPONENT =================
 const NoteEditor = ({ title, notes, onSave, onDelete }) => {
   const [text, setText] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -130,15 +144,15 @@ const NoteEditor = ({ title, notes, onSave, onDelete }) => {
             key={note.id}
             className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex justify-between items-start group"
           >
-            <div>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
                 {note.text}
               </p>
               <p className="text-[10px] text-gray-400 mt-1">
                 {new Date(note.date).toLocaleString()}
               </p>
             </div>
-            <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-1 ml-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleEdit(note)}
                 className="p-1 hover:bg-gray-200 rounded"
@@ -175,6 +189,176 @@ const NoteEditor = ({ title, notes, onSave, onDelete }) => {
   );
 };
 
+// ================= AVAILABILITY SETTINGS COMPONENT =================
+const AvailabilitySettings = ({ counselorId }) => {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [generatedDates, setGeneratedDates] = useState([]);
+  const [schedule, setSchedule] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const days = [];
+    const today = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const fullDate = d.toISOString().split("T")[0];
+
+      days.push({
+        dayName: d
+          .toLocaleDateString("en-US", { weekday: "short" })
+          .toUpperCase(),
+        dateNum: d.getDate(),
+        fullDate,
+        isToday: i === 0,
+      });
+    }
+    setGeneratedDates(days);
+    setSelectedDate(days[0].fullDate);
+
+    // In real app, fetch availability from backend here
+    const mockSchedule = {};
+    days.forEach((d) => (mockSchedule[d.fullDate] = [...STANDARD_TIME_SLOTS]));
+    setSchedule(mockSchedule);
+  }, [counselorId]);
+
+  const toggleSlot = (time) => {
+    if (!selectedDate) return;
+
+    setSchedule((prev) => {
+      const currentSlots = prev[selectedDate] || [];
+      const updatedSlots = currentSlots.includes(time)
+        ? currentSlots.filter((t) => t !== time)
+        : [...currentSlots, time].sort();
+
+      return { ...prev, [selectedDate]: updatedSlots };
+    });
+  };
+
+  const saveAvailability = async () => {
+    setLoading(true);
+    try {
+      await axios.put(`http://localhost:5000/api/counselors/${counselorId}`, {
+        schedule: schedule,
+      });
+      alert("Availability updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save availability. Check backend connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-4 md:p-6 h-full flex flex-col">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-800">My Availability</h3>
+          <p className="text-sm text-gray-500">
+            Manage your open slots for students.
+          </p>
+        </div>
+        <button
+          onClick={saveAvailability}
+          disabled={loading}
+          className="flex items-center gap-2 px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-bold transition-all disabled:opacity-70 w-full md:w-auto justify-center"
+        >
+          {loading ? (
+            "Saving..."
+          ) : (
+            <>
+              <Save size={18} /> Save Changes
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
+        {/* Date Selector */}
+        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 overflow-y-auto max-h-64 md:max-h-full">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+            Select Date
+          </h4>
+          <div className="space-y-2">
+            {generatedDates.map((date) => (
+              <button
+                key={date.fullDate}
+                onClick={() => setSelectedDate(date.fullDate)}
+                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                  selectedDate === date.fullDate
+                    ? "bg-white border-cyan-500 border-2 shadow-sm"
+                    : "bg-white border border-transparent hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      selectedDate === date.fullDate
+                        ? "bg-cyan-100 text-cyan-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {date.dateNum}
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${selectedDate === date.fullDate ? "text-gray-900" : "text-gray-500"}`}
+                  >
+                    {date.dayName}
+                  </span>
+                </div>
+                {date.isToday && (
+                  <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                    TODAY
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Slot Toggler */}
+        <div className="md:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 flex flex-col">
+          <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Clock size={18} className="text-cyan-600" />
+            Time Slots for {selectedDate}
+          </h4>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {STANDARD_TIME_SLOTS.map((time) => {
+              const isAvailable = schedule[selectedDate]?.includes(time);
+              return (
+                <button
+                  key={time}
+                  onClick={() => toggleSlot(time)}
+                  className={`py-3 rounded-xl text-sm font-medium transition-all border-2 ${
+                    isAvailable
+                      ? "bg-cyan-50 border-cyan-500 text-cyan-700"
+                      : "bg-gray-50 border-gray-100 text-gray-400 opacity-60"
+                  }`}
+                >
+                  {time}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-auto pt-6 text-xs text-gray-400 flex flex-wrap gap-4 justify-center">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-cyan-50 border-2 border-cyan-500"></div>{" "}
+              Available
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-gray-50 border-2 border-gray-100"></div>{" "}
+              Unavailable
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ================= MAIN PAGE COMPONENT =================
 
 const StudentsPage = () => {
@@ -183,13 +367,25 @@ const StudentsPage = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentMoods, setStudentMoods] = useState([]);
   const [journalCount, setJournalCount] = useState(0);
+  const [studentQueries, setStudentQueries] = useState([]);
   const [isListOpen, setIsListOpen] = useState(false); // Mobile sidebar toggle
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // State for Notes/Prescriptions/Treatments
+  // State for Notes
   const [sessionNotes, setSessionNotes] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [treatmentPlans, setTreatmentPlans] = useState([]);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  // Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Fetch Students & Data
   useEffect(() => {
@@ -198,17 +394,29 @@ const StudentsPage = () => {
         const apptRes = await axios.get(
           "http://localhost:5000/api/appointments",
         );
+
+        // Filter locally for demo
+        const myAppointments = currentUser
+          ? apptRes.data.filter((appt) => appt.counselorId === currentUser.uid)
+          : apptRes.data;
+
         const uniqueStudentsMap = new Map();
 
-        apptRes.data.forEach((appt) => {
-          // In real app, filter by logged in counselor ID here
+        myAppointments.forEach((appt) => {
           if (!uniqueStudentsMap.has(appt.studentName)) {
             uniqueStudentsMap.set(appt.studentName, {
-              id: appt._id,
+              id: appt.studentUid || appt._id,
               name: appt.studentName || "Student",
               concern: appt.concern || "General",
               lastAppointmentDate: appt.date,
               image: `https://i.pravatar.cc/150?u=${appt.studentName}`,
+              queries: [],
+            });
+          }
+          if (appt.note) {
+            uniqueStudentsMap.get(appt.studentName).queries.push({
+              text: appt.note,
+              date: appt.date,
             });
           }
         });
@@ -223,20 +431,20 @@ const StudentsPage = () => {
         console.error("Error fetching data:", err);
       }
     };
-    fetchData();
-  }, []);
+    if (currentUser) fetchData();
+  }, [currentUser]);
 
   // Fetch Student Specific Details
   useEffect(() => {
     if (!selectedStudent) return;
 
-    // Simulate Fetching Data
     const mockMoods = Array.from({ length: 14 }, (_, i) => ({
       date: new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000).toISOString(),
       score: Math.floor(Math.random() * 5) + 1,
     }));
     setStudentMoods(mockMoods);
     setJournalCount(Math.floor(Math.random() * 20) + 1);
+    setStudentQueries(selectedStudent.queries || []);
 
     setSessionNotes([]);
     setPrescriptions([]);
@@ -300,7 +508,7 @@ const StudentsPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans flex flex-col h-screen overflow-hidden">
-      {/* --- 1. HEADER --- */}
+      {/* HEADER */}
       <header className="bg-white border-b border-gray-200 px-4 md:px-6 h-16 flex items-center justify-between shrink-0 z-30 relative">
         <div className="flex items-center gap-3">
           {/* Mobile Sidebar Toggle */}
@@ -311,14 +519,16 @@ const StudentsPage = () => {
             <Users size={24} />
           </button>
 
-          <img
-            src="/logo.png"
-            alt="MindNest"
-            className="w-8 h-8 object-contain"
-          />
-          <span className="text-lg font-bold text-gray-900 tracking-tight hidden sm:block">
-            MindNest Counselor Portal
-          </span>
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="MindNest"
+              className="w-8 h-8 object-contain"
+            />
+            <span className="text-lg font-bold text-gray-900 tracking-tight hidden sm:block">
+              MindNest Counselor Portal
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -332,9 +542,9 @@ const StudentsPage = () => {
         </div>
       </header>
 
-      {/* --- 2. MAIN LAYOUT --- */}
+      {/* MAIN LAYOUT */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* --- STUDENT LIST SIDEBAR (Responsive) --- */}
+        {/* SIDEBAR (Responsive) */}
         {/* Overlay for mobile */}
         {isListOpen && (
           <div
@@ -354,39 +564,62 @@ const StudentsPage = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-gray-900 text-lg">Active Cases</h2>
               <span className="bg-cyan-100 text-cyan-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                {students.length}
+                {students.length} Active
               </span>
             </div>
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
-              />
+
+            {/* VIEW TOGGLE */}
+            <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
+              <button
+                onClick={() => setActiveTab("Session Notes")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab !== "Availability" ? "bg-white shadow-sm text-cyan-700" : "text-gray-500"}`}
+              >
+                Students
+              </button>
+              <button
+                onClick={() => setActiveTab("Availability")}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab === "Availability" ? "bg-white shadow-sm text-cyan-700" : "text-gray-500"}`}
+              >
+                Availability
+              </button>
             </div>
+
+            {activeTab !== "Availability" && (
+              <div className="relative">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {students.map((student) => (
-              <SidebarItem
-                key={student.id}
-                student={student}
-                isSelected={selectedStudent?.id === student.id}
-                onClick={setSelectedStudent}
-              />
-            ))}
+            {activeTab !== "Availability" &&
+              students.map((student) => (
+                <SidebarItem
+                  key={student.id}
+                  student={student}
+                  isSelected={selectedStudent?.id === student.id}
+                  onClick={setSelectedStudent}
+                />
+              ))}
           </div>
         </aside>
 
-        {/* --- RIGHT CONTENT (PROFILE & NOTES) --- */}
+        {/* RIGHT CONTENT */}
         <main className="flex-1 overflow-y-auto bg-[#F8FAFC] p-4 md:p-8">
-          {selectedStudent ? (
+          {/* CONDITIONAL RENDER: AVAILABILITY SETTINGS */}
+          {activeTab === "Availability" ? (
+            <AvailabilitySettings counselorId={currentUser?.uid} />
+          ) : selectedStudent ? (
             <div className="max-w-6xl mx-auto space-y-6">
-              {/* Student Header Card */}
+              {/* Student Header */}
               <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
                   <div className="relative">
@@ -417,14 +650,10 @@ const StudentsPage = () => {
                 </div>
               </div>
 
-              {/* Dashboard Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* --- LEFT COLUMN (STATS) --- */}
+                {/* STATS */}
                 <div className="lg:col-span-5 space-y-6">
-                  {/* Mood Chart */}
                   <MoodChartWidget moodData={studentMoods} />
-
-                  {/* Engagement Stats */}
                   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-4">
                       Engagement & Journaling
@@ -440,28 +669,36 @@ const StudentsPage = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Student Queries Section */}
                   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                       <MessageCircle size={18} className="text-cyan-600" />{" "}
                       Student Queries
                     </h3>
                     <div className="space-y-3">
-                      <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-900 border border-blue-100">
-                        "How do I manage panic attacks during exams?"
-                      </div>
-                      <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-900 border border-blue-100">
-                        "Is it normal to feel tired all the time?"
-                      </div>
+                      {studentQueries.length > 0 ? (
+                        studentQueries.map((q, i) => (
+                          <div
+                            key={i}
+                            className="bg-blue-50 p-3 rounded-lg text-sm text-blue-900 border border-blue-100"
+                          >
+                            "{q.text}" <br />
+                            <span className="text-[10px] text-blue-400 mt-1 block">
+                              {q.date}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-400 text-sm text-center">
+                          No recent queries.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* --- RIGHT COLUMN (NOTES & FORM) --- */}
+                {/* NOTES & FORM */}
                 <div className="lg:col-span-7">
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col">
-                    {/* Tab Header (Scrollable on mobile) */}
                     <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 overflow-x-auto">
                       <div className="flex gap-6 min-w-max">
                         {[
@@ -484,7 +721,6 @@ const StudentsPage = () => {
                       </div>
                     </div>
 
-                    {/* Form Content */}
                     <div className="p-4 md:p-6 space-y-6 flex-1 overflow-y-auto">
                       {activeTab === "Session Notes" && (
                         <NoteEditor
@@ -496,7 +732,6 @@ const StudentsPage = () => {
                           onDelete={(id) => handleDeleteNote("notes", id)}
                         />
                       )}
-
                       {activeTab === "Digital Prescription" && (
                         <NoteEditor
                           title="Digital Prescription / Advice"
@@ -505,7 +740,6 @@ const StudentsPage = () => {
                           onDelete={(id) => handleDeleteNote("rx", id)}
                         />
                       )}
-
                       {activeTab === "Treatment Plan" && (
                         <NoteEditor
                           title="Long-term Treatment Plan"
@@ -517,12 +751,10 @@ const StudentsPage = () => {
                         />
                       )}
 
-                      {/* Resources Upload */}
                       <div className="pt-6 border-t border-gray-100">
                         <label className="block text-xs font-bold text-cyan-700 uppercase tracking-wider mb-3">
-                          Digital Resources & Assignments
+                          Digital Resources & Assignments (Sent to Student)
                         </label>
-
                         <div className="space-y-2 mb-3">
                           {uploadedFiles.map((file, idx) => (
                             <div
@@ -551,9 +783,9 @@ const StudentsPage = () => {
                             </div>
                           ))}
                         </div>
-
                         <label className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-cyan-600 transition-colors px-1 cursor-pointer w-fit">
-                          <Paperclip size={16} /> Attach New Resource
+                          <Paperclip size={16} /> Attach New Resource (PDF, Doc,
+                          Image)
                           <input
                             type="file"
                             className="hidden"
@@ -564,7 +796,6 @@ const StudentsPage = () => {
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
                     <div className="p-4 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 bg-gray-50/50 rounded-b-2xl">
                       <button
                         onClick={handleDiscard}

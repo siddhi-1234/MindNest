@@ -9,6 +9,7 @@ import connectDB from "./config/db.js";
 import moodRoutes from "./routes/moodRoutes.js";
 import journalRoutes from "./routes/journal.js";
 import counselorRoutes from "./routes/counselorRoutes.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js";
 
 // === COMPATIBILITY SETUP ===
 // This allows us to use 'require' for the Chatbot libraries inside this ESM file
@@ -41,6 +42,7 @@ const CREDENTIALS_PATH = path.join(__dirname, "mindnest-key.json");
 app.use("/api/mood", moodRoutes);
 app.use("/api/Journals", journalRoutes);
 app.use("/api/counselors", counselorRoutes);
+app.use("/api/appointments", require("./routes/appointmentRoutes"));
 
 app.get("/", (req, res) => {
   res.send("MindNest Backend is Running...");
