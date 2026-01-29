@@ -27,4 +27,23 @@ router.get("/", async (req, res) => {
   }
 });
 
+// @route   PUT /api/appointments/:id
+// @desc    Update appointment status
+router.put("/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const appointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true },
+    );
+    if (!appointment)
+      return res.status(404).json({ msg: "Appointment not found" });
+    res.json(appointment);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;
