@@ -18,66 +18,84 @@ import {
   Menu,
   Eye,
 } from "lucide-react";
+import { auth } from "../firebase"; // Import Auth
+import { onAuthStateChanged } from "firebase/auth";
 
 const JournalDashboard = () => {
   // === STATE MANAGEMENT ===
-  const [title, setTitle] = useState(""); // Title of the journal entry
-  const [content, setContent] = useState(""); // Content of the journal entry
-  const [mood, setMood] = useState("neutral"); // Mood: happy, neutral, sad
-  const [currentTime, setCurrentTime] = useState(new Date()); // Current date and time
-  const [showHistory, setShowHistory] = useState(false); // Show/Hide history modal
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile menu toggle
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [mood, setMood] = useState("neutral");
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showHistory, setShowHistory] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // Track logged-in user
 
-  // Dummy Data for Journal Entries
-  const [entries, setEntries] = useState([
-    {
-      id: 1,
-      title: "Feeling Overwhelmed",
-      content:
-        "Today was harder than expected. I had too many assignments due and I felt like I couldn't catch up. I need to break things down into smaller tasks.",
-      excerpt: "Today was harder than expected...",
-      date: "Oct 23",
-      mood: "sad",
-    },
-    {
-      id: 2,
-      title: "A Good Walk",
-      content:
-        "Took a break from studying and went for a walk in the park. The fresh air really helped clear my mind. I saw a cute dog!",
-      excerpt: "Took a break from studying...",
-      date: "Oct 21",
-      mood: "happy",
-    },
-    {
-      id: 3,
-      title: "Exam Anxiety",
-      content:
-        "I can't seem to focus on my revision. Every time I open the book I get anxious. I should try the Pomodoro technique.",
-      excerpt: "I can't seem to focus on my...",
-      date: "Oct 18",
-      mood: "neutral",
-    },
-    {
-      id: 4,
-      title: "Coffee Break",
-      content:
-        "Found a nice cafe today called 'The Bean'. Had a great latte and read a book for 30 mins.",
-      excerpt: "Found a nice cafe today...",
-      date: "Oct 15",
-      mood: "happy",
-    },
-  ]);
+  // Initialize with empty array, NOT dummy data
+  const [entries, setEntries] = useState([]);
 
   // === EFFECTS ===
+
+  // 1. Monitor Auth State
   useEffect(() => {
-    // Update current time every second
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+        fetchUserEntries(user.uid); // Fetch entries when user is confirmed
+      } else {
+        setCurrentUser(null);
+        setEntries([]); // Clear entries on logout
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Fetch Entries from Backend
+  const fetchUserEntries = async (uid) => {
+    try {
+      // Assuming your backend supports filtering by UID query param
+      // If your API returns ALL journals, we filter on client side (shown below)
+      const response = await fetch(
+        `http://localhost:5000/api/Journals?uid=${uid}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+
+        // Filter specifically for this user just in case the backend returns all
+        const userEntries = data
+          .filter((entry) => entry.uid === uid)
+          .map((entry) => ({
+            id: entry._id,
+            title: entry.title || "Untitled", // Ensure title exists in your DB schema or handle it
+            content: entry.content,
+            excerpt: entry.content.substring(0, 30) + "...",
+            date: new Date(entry.date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            }),
+            fullDate: entry.date, // Keep for sorting
+            mood: entry.mood || "neutral", // Ensure mood exists in DB schema
+          }));
+
+        // Sort by newest first (optional)
+        setEntries(
+          userEntries.sort(
+            (a, b) => new Date(b.fullDate) - new Date(a.fullDate),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch journals:", error);
+    }
+  };
+
+  useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   // === HANDLERS ===
 
-  // Format date and time for display
   const formattedDate = currentTime.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
@@ -89,19 +107,18 @@ const JournalDashboard = () => {
     hour12: true,
   });
 
-  // Save journal entry to Backend
   const handleSave = async () => {
-    if (!title.trim() && !content.trim()) return;
+    if ((!title.trim() && !content.trim()) || !currentUser) return;
 
-    // 1. Prepare the data for the Backend
     const journalData = {
-      uid: "test-user-123", // Replace with actual user UID from Auth
+      uid: currentUser.uid, // Use actual UID
+      title: title, // Add title to backend schema if not present
       content: content,
-      date: new Date().toISOString().split("T")[0], // Formats as "2023-10-27"
+      mood: mood, // Add mood to backend schema if not present
+      date: new Date().toISOString(),
     };
 
     try {
-      // 2. Send POST request to your Backend
       const response = await fetch("http://localhost:5000/api/Journals", {
         method: "POST",
         headers: {
@@ -113,9 +130,8 @@ const JournalDashboard = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // 3. If Backend accepts it, update Frontend UI
         const newEntry = {
-          id: data._id, // Use the real ID from MongoDB
+          id: data._id,
           title: title || "Untitled Entry",
           content: data.content,
           excerpt: data.content.slice(0, 30) + "...",
@@ -126,12 +142,13 @@ const JournalDashboard = () => {
           mood: mood,
         };
 
-        setEntries([newEntry, ...entries]);
-        handleDiscard(); // Clear the form
-        alert("Saved to Database successfully!");
+        // Add new entry and re-fetch to ensure sync
+        fetchUserEntries(currentUser.uid);
+
+        handleDiscard();
+        alert("Saved successfully!");
       } else {
-        // Handle "Journal already exists for today" error
-        alert("Error: " + data.message);
+        alert("Error: " + (data.message || "Could not save"));
       }
     } catch (error) {
       console.error("Error saving journal:", error);
@@ -145,17 +162,28 @@ const JournalDashboard = () => {
     setMood("neutral");
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    // Optimistic delete
+    const previousEntries = [...entries];
     setEntries(entries.filter((entry) => entry.id !== id));
+
+    // Call backend to delete (Optional implementation)
+    try {
+      await fetch(`http://localhost:5000/api/Journals/${id}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.error("Delete failed", err);
+      setEntries(previousEntries); // Revert on failure
+      alert("Failed to delete entry.");
+    }
   };
 
-  // NEW: Function to Open/View an entry in the editor
   const handleOpenEntry = (entry) => {
     setTitle(entry.title);
     setContent(entry.content);
     setMood(entry.mood);
-    setShowHistory(false); // Close the modal
-    // Scroll to top to see the editor
+    setShowHistory(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -221,9 +249,7 @@ const JournalDashboard = () => {
                       </p>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex items-center gap-2 ml-4">
-                      {/* Open Button */}
                       <button
                         onClick={() => handleOpenEntry(entry)}
                         title="Open Entry"
@@ -232,7 +258,6 @@ const JournalDashboard = () => {
                         <Eye className="w-5 h-5" />
                       </button>
 
-                      {/* Delete Button */}
                       <button
                         onClick={() => handleDelete(entry.id)}
                         title="Delete Entry"
@@ -272,7 +297,7 @@ const JournalDashboard = () => {
           <a href="/Journal" className="hover:text-white transition">
             Journal
           </a>
-          <a href="#" className="hover:text-white transition">
+          <a href="/counselling" className="hover:text-white transition">
             Counselling
           </a>
         </div>
@@ -322,6 +347,7 @@ const JournalDashboard = () => {
           <div className="bg-[#1E293B] p-6 rounded-2xl border border-gray-700/50 shadow-lg">
             <h3 className="text-white font-bold mb-4">Recent Entries</h3>
             <div className="space-y-4">
+              {/* Only show up to 4 recent entries */}
               {entries.slice(0, 4).map((entry) => (
                 <div
                   key={entry.id}
@@ -332,10 +358,10 @@ const JournalDashboard = () => {
                     className={`flex flex-col items-center justify-center rounded-lg w-12 h-12 shrink-0 bg-gray-700/30 text-gray-400`}
                   >
                     <span className="text-[10px] font-bold uppercase">
-                      {entry.date.split(" ")[0]}
+                      {entry.date ? entry.date.split(" ")[0] : "N/A"}
                     </span>
                     <span className="text-lg font-bold leading-none">
-                      {entry.date.split(" ")[1]}
+                      {entry.date ? entry.date.split(" ")[1] : ""}
                     </span>
                   </div>
                   <div className="overflow-hidden">
@@ -348,6 +374,11 @@ const JournalDashboard = () => {
                   </div>
                 </div>
               ))}
+              {entries.length === 0 && (
+                <p className="text-xs text-gray-500 italic">
+                  Your recent thoughts will appear here.
+                </p>
+              )}
             </div>
 
             <button
@@ -454,7 +485,7 @@ const JournalDashboard = () => {
             {/* Footer */}
             <div className="px-6 py-4 bg-[#182235] border-t border-gray-700/50 flex justify-between items-center">
               <span className="text-xs text-gray-500 italic hidden md:inline">
-                Unsaved changes...
+                {title || content ? "Unsaved changes..." : "Ready to write"}
               </span>
               <div className="flex gap-3 w-full md:w-auto justify-end">
                 <button

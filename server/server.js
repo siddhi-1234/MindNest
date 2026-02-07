@@ -17,6 +17,7 @@ const require = createRequire(import.meta.url);
 const { WebhookClient, Payload } = require("dialogflow-fulfillment");
 const dialogflow = require("dialogflow");
 const { v4: uuidv4 } = require("uuid");
+const nodemailer = require("nodemailer");
 
 // Load .env
 dotenv.config();
@@ -30,13 +31,73 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// INCREASE LIMIT for JSON body to handle file attachments (e.g., 10MB)
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
 
+// ================= EMAIL CONFIGURATION (SECURE) =================
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 // ================= CONFIG FOR CHATBOT =================
-const PROJECT_ID = "mindnest-fb17d";
-const CREDENTIALS_PATH = path.join(__dirname, "mindnest-key.json");
+const PROJECT_ID = process.env.DIALOGFLOW_PROJECT_ID;
+const CREDENTIALS_PATH = path.join(__dirname, process.env.DIALOGFLOW_KEY_FILE);
+
+// ================= SEND EMAIL ROUTE =================
+app.post("/api/send-email", async (req, res) => {
+  const { email, subject, message } = req.body;
+
+  const mailOptions = {
+    from: `"MindNest Counselor" <${process.env.EMAIL_USER}>`, // Use env var here too
+    to: email,
+    subject: subject,
+    text: message,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("📧 Email sent successfully to:", email);
+    res.status(200).json({ message: "Email sent successfully" });
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
+
+// ================= SEND EMAIL ROUTE (WITH ATTACHMENTS) =================
+app.post("/api/send-email-with-attachments", async (req, res) => {
+  const { email, subject, message, attachments } = req.body;
+
+  // Process attachments if they exist
+  // Frontend sends: [{ filename: "doc.pdf", content: "base64string...", encoding: "base64" }]
+  const mailOptions = {
+    from: `"MindNest Counselor" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: subject,
+    text: message,
+    attachments: attachments || [],
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(
+      `📧 Email with ${attachments?.length || 0} attachment(s) sent to: ${email}`,
+    );
+    res.status(200).json({ message: "Email sent successfully" });
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
 
 // ================= ROUTES =================
 app.use("/api/mood", moodRoutes);

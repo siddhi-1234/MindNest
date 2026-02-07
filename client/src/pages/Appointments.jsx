@@ -11,6 +11,7 @@ import {
   Loader2,
   LogOut,
   Menu,
+  RotateCcw, // Added icon for re-booking
 } from "lucide-react";
 
 // ================= Standard Working Hours =================
@@ -69,7 +70,6 @@ const Appointments = () => {
       }
     });
 
-    // ✅ FIXED: Generate dates using LOCAL Time to avoid timezone mismatch
     const days = [];
     const today = new Date();
 
@@ -77,7 +77,6 @@ const Appointments = () => {
       const d = new Date();
       d.setDate(today.getDate() + i);
 
-      // Create YYYY-MM-DD string using local time components
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
       const day = String(d.getDate()).padStart(2, "0");
@@ -101,13 +100,18 @@ const Appointments = () => {
     return () => unsubscribe();
   }, []);
 
-  // --- 2. Fetch Counselors (With Schedule) ---
+  // --- 2. Fetch Counselors ---
   useEffect(() => {
     const fetchCounselors = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/counselors");
         if (res.data) {
-          const formattedData = res.data.map((c) => ({
+          // Filter out counselors with no name (deleted/malformed)
+          const validCounselors = res.data.filter(
+            (c) => c.name && c.name.trim() !== "",
+          );
+
+          const formattedData = validCounselors.map((c) => ({
             id: c.uid,
             dbId: c._id,
             name: c.name,
@@ -115,7 +119,7 @@ const Appointments = () => {
             image: c.image || "https://i.pravatar.cc/150",
             tags: c.tags || ["General"],
             description: c.description,
-            schedule: c.schedule || {}, // Capture availability schedule
+            schedule: c.schedule || {},
           }));
           setCounselors(formattedData);
         }
@@ -128,23 +132,18 @@ const Appointments = () => {
     fetchCounselors();
   }, []);
 
-  // --- 3. Availability Logic (The Fix) ---
+  // --- 3. Availability Logic ---
   useEffect(() => {
     const fetchAvailability = async () => {
-      // Only run if both counselor and date are picked
       if (!formData.counselorId || !formData.date) return;
 
       setLoadingSlots(true);
       try {
-        // A. Get Counselor's "Base" Availability for this specific date
         const selectedCounselor = counselors.find(
           (c) => c.id === formData.counselorId,
         );
+        let baseSlots = STANDARD_TIME_SLOTS;
 
-        let baseSlots = STANDARD_TIME_SLOTS; // Default to all slots
-
-        // If counselor has set availability for this date, use it
-        // Check if schedule exists AND if the array for this date is defined
         if (
           selectedCounselor?.schedule &&
           Array.isArray(selectedCounselor.schedule[formData.date])
@@ -152,9 +151,7 @@ const Appointments = () => {
           baseSlots = selectedCounselor.schedule[formData.date];
         }
 
-        // B. Get "Booked" Appointments from Backend
         const res = await axios.get("http://localhost:5000/api/appointments");
-
         const bookedAppointments = res.data.filter(
           (appt) =>
             appt.counselorId === formData.counselorId &&
@@ -163,17 +160,13 @@ const Appointments = () => {
         );
 
         const bookedTimes = bookedAppointments.map((appt) => appt.time);
-
-        // C. Calculate Final Free Slots
-        // (Base Slots - Booked Slots)
         const finalSlots = baseSlots.filter(
           (slot) => !bookedTimes.includes(slot),
         );
-
         setAvailableSlots(finalSlots);
       } catch (err) {
         console.error("Error calculating availability:", err);
-        setAvailableSlots(STANDARD_TIME_SLOTS); // Fail-safe: show standard slots
+        setAvailableSlots(STANDARD_TIME_SLOTS);
       } finally {
         setLoadingSlots(false);
       }
@@ -194,9 +187,8 @@ const Appointments = () => {
         myAppointments.reverse().map((appt) => ({
           id: appt._id,
           counselorId: appt.counselorId,
-          counselorName: appt.counselorName,
+          counselorName: appt.counselorName, // This comes directly from the appointment record
           date: `${appt.date} • ${appt.time}`,
-          // Status is now dynamic from backend
           status: appt.status || "pending",
           type: appt.type,
           img: appt.counselorImage || "https://i.pravatar.cc/150",
@@ -218,7 +210,7 @@ const Appointments = () => {
       ...prev,
       date: dateObj.fullDate,
       displayDate: dateObj.dateNum,
-      time: null, // Reset time on date change
+      time: null,
     }));
   };
 
@@ -234,14 +226,21 @@ const Appointments = () => {
       const selectedCounselor = counselors.find(
         (c) => c.id === formData.counselorId,
       );
+
+      if (!selectedCounselor) {
+        alert("Counselor information missing. Please refresh.");
+        setIsBooking(false);
+        return;
+      }
+
       await axios.post("http://localhost:5000/api/appointments", {
         studentUid: currentUser.uid,
         studentName: currentUser.displayName || currentUser.email.split("@")[0],
         studentEmail: currentUser.email,
         counselorId: selectedCounselor.id,
-        counselorName: selectedCounselor.name,
+        counselorName: selectedCounselor.name, // Ensure this is the correct selected counselor name
         counselorImage: selectedCounselor.image,
-        date: formData.date, // YYYY-MM-DD
+        date: formData.date,
         time: formData.time,
         type: formData.sessionType,
         concern: formData.concern,
@@ -273,23 +272,21 @@ const Appointments = () => {
     }
   };
 
-  const handleCancel = (id) => {
-    if (window.confirm("Cancel this appointment?")) {
-      // Add axios.delete logic here if needed
-      setHistory(history.filter((item) => item.id !== id));
-    }
-  };
-
+  // ✅ Fix: Only allow re-booking if the counselor is valid and exists in current list
   const handleBookAgain = (counselorId) => {
-    updateForm("counselorId", counselorId);
-    setCurrentStep(2);
-    topRef.current?.scrollIntoView({ behavior: "smooth" });
+    const exists = counselors.find((c) => c.id === counselorId);
+
+    if (exists) {
+      updateForm("counselorId", counselorId);
+      setCurrentStep(2);
+      topRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      alert("This counselor is no longer available.");
+    }
   };
 
   const scrollToHistory = () =>
     historyRef.current?.scrollIntoView({ behavior: "smooth" });
-  const scrollToTop = () =>
-    topRef.current?.scrollIntoView({ behavior: "smooth" });
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans flex flex-col">
@@ -406,7 +403,6 @@ const Appointments = () => {
                 </h2>
               </div>
               <div className="bg-[#1E293B] p-6 rounded-3xl border border-gray-800">
-                {/* Date Grid */}
                 <div className="grid grid-cols-7 gap-2 mb-8 text-center">
                   {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map(
                     (d) => (
@@ -431,8 +427,6 @@ const Appointments = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* Slot Grid */}
                 <h3 className="font-bold text-white mb-4">
                   Available Slots{" "}
                   {formData.date && (
@@ -468,7 +462,6 @@ const Appointments = () => {
               </div>
             </div>
 
-            {/* Step 3 Form - Simplified for brevity but logic retained */}
             <div
               className={`transition-all duration-500 ${currentStep < 3 ? "opacity-50 pointer-events-none" : "opacity-100"}`}
             >
@@ -527,7 +520,6 @@ const Appointments = () => {
           </div>
         </div>
 
-        {/* History Section */}
         <div
           ref={historyRef}
           className="max-w-6xl mx-auto mt-12 pt-8 border-t border-gray-800"
@@ -550,9 +542,20 @@ const Appointments = () => {
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-900/30 text-green-400 border border-green-500/50">
-                  {item.status.toUpperCase()}
-                </span>
+
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-900/30 text-green-400 border border-green-500/50">
+                    {item.status.toUpperCase()}
+                  </span>
+                  {/* Book Again Button */}
+                  <button
+                    onClick={() => handleBookAgain(item.counselorId)}
+                    className="p-2 bg-blue-900/30 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-900/50 transition-colors"
+                    title="Book Again with this Counselor"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

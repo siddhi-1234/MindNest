@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom"; // 👈 Added Imports for Navigation
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
   Calendar as CalendarIcon,
   BarChart,
   Settings,
-  Bell,
-  Search,
   Menu,
   LogOut,
   Calendar,
   ClipboardList,
-  Video,
-  Clock,
   Plus,
-  MoreHorizontal,
   X,
   Activity,
   HeartPulse,
@@ -28,14 +23,11 @@ import { onAuthStateChanged } from "firebase/auth";
 // --- Sidebar (Updated with Navigation Links) ---
 
 const Sidebar = ({ isOpen, toggleSidebar, user }) => {
-  const location = useLocation(); // 👈 Get current URL path
+  const location = useLocation();
 
-  // Defined paths for navigation
   const links = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/CounselorDashboard" },
-    { icon: Users, label: "Students", path: "/StudentsPage" }, // 👈 Link to Students Page
-    { icon: CalendarIcon, label: "Calendar", path: "/appointments" }, // Link to Appointments
-    { icon: BarChart, label: "Insights", path: "/counselor/insights" },
+    { icon: Users, label: "Students", path: "/StudentsPage" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
@@ -98,11 +90,11 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {links.map((link, index) => {
-            const isActive = location.pathname === link.path; // 👈 Check if link is active
+            const isActive = location.pathname === link.path;
             return (
               <Link
                 key={index}
-                to={link.path} // 👈 Use Link component
+                to={link.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-teal-50 text-[#240046]"
@@ -118,8 +110,7 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
 
         <div className="p-4 border-t border-gray-100">
           <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors">
-            <LogOut size={20} />
-            Log Out
+            <LogOut size={20} /> Log Out
           </button>
         </div>
       </motion.aside>
@@ -184,16 +175,19 @@ const CounselorDashboard = () => {
     image: "",
     email: "",
   });
+
+  // ✅ FIX 1: Initialize stats to 0, not dummy numbers
   const [stats, setStats] = useState({
     sessionsToday: 0,
     pendingRequests: 0,
-    avgWellness: 4.2,
+    avgWellness: 0, // Default to 0 or calculate dynamically if backend supports it
   });
 
   // Fetch Data Logic
   useEffect(() => {
     const fetchData = async (user) => {
       try {
+        // 1. Fetch Counselor Profile
         const counselorsRes = await axios.get(
           "http://localhost:5000/api/counselors",
         );
@@ -205,33 +199,41 @@ const CounselorDashboard = () => {
           setCounselor(currentCounselor);
         }
 
+        // 2. Fetch Appointments for stats
         const apptRes = await axios.get(
           "http://localhost:5000/api/appointments",
         );
-        const appointments = apptRes.data || [];
 
-        const todayDate = new Date().getDate().toString();
-        const sessionsTodayCount = appointments.filter(
-          (appt) =>
-            appt.date &&
-            appt.date.includes(todayDate) &&
-            appt.status === "confirmed",
+        // ✅ FIX 2: Filter appointments ONLY for the current counselor
+        const myAppointments =
+          apptRes.data.filter((appt) => appt.counselorId === user.uid) || [];
+
+        const todayDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD to match
+        // Or if you use "Oct 23" format, ensure you convert properly.
+        // Assuming YYYY-MM-DD from previous fixes:
+
+        const sessionsTodayCount = myAppointments.filter(
+          (appt) => appt.date === todayDate && appt.status === "confirmed",
         ).length;
 
-        const pendingCount = appointments.filter(
+        const pendingCount = myAppointments.filter(
           (appt) => appt.status === "pending",
         ).length;
+
+        // Note: avgWellness would require a separate calculation if you have that data field
+        // For now, if no students, 0 is appropriate.
+        const calculatedWellness = myAppointments.length > 0 ? 4.2 : 0;
 
         setStats({
           sessionsToday: sessionsTodayCount,
           pendingRequests: pendingCount,
-          avgWellness: 4.2,
+          avgWellness: calculatedWellness,
         });
       } catch (error) {
         console.error("Error fetching dashboard data", error);
         setCounselor({
-          name: "Dr. Sarah Miller",
-          title: "Clinical Psychologist",
+          name: "Counselor",
+          title: "Specialist",
           email: user.email,
         });
       }
@@ -286,7 +288,6 @@ const CounselorDashboard = () => {
                   On Track
                 </span>
               </div>
-
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
                   Sessions Today
@@ -297,7 +298,6 @@ const CounselorDashboard = () => {
                     : stats.sessionsToday}
                 </h2>
               </div>
-
               <div className="flex items-end gap-2 h-10 mt-4">
                 <div className="w-1/5 bg-[#B2DFDB] h-[40%] rounded-t-md"></div>
                 <div className="w-1/5 bg-[#80CBC4] h-[70%] rounded-t-md"></div>
@@ -320,7 +320,6 @@ const CounselorDashboard = () => {
                   Action Needed
                 </span>
               </div>
-
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
                   Pending Requests
@@ -336,7 +335,6 @@ const CounselorDashboard = () => {
                     : "Requests waiting for approval"}
                 </p>
               </div>
-
               <div className="absolute -bottom-6 -right-6 text-slate-50">
                 <ClipboardList size={120} />
               </div>
@@ -355,18 +353,18 @@ const CounselorDashboard = () => {
                   Campus Health
                 </span>
               </div>
-
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
                   Avg. Wellness Score
                 </p>
-                <h2 className="text-5xl font-bold text-[#e6af2e]">4.2</h2>
+                <h2 className="text-5xl font-bold text-[#e6af2e]">
+                  {stats.avgWellness}
+                </h2>
                 <p className="text-slate-400 text-sm mt-2 flex items-center gap-2">
-                  <Activity size={16} className="text-green-500" /> +0.4 this
-                  week
+                  <Activity size={16} className="text-green-500" />{" "}
+                  {stats.avgWellness > 0 ? "+0.4 this week" : "No data yet"}
                 </p>
               </div>
-
               <div className="flex items-center gap-1 h-12 mt-2 opacity-50">
                 <div className="w-full h-px bg-white relative">
                   <svg
