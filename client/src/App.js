@@ -15,6 +15,11 @@ import Appointments from "./pages/Appointments";
 import CounselorLogin from "./pages/CounselorLogin";
 import CounselorDashboard from "./pages/CounselorDashboard";
 import StudentsPage from "./pages/StudentsPage";
+import SettingsPage from "./pages/SettingsPage";
+import EmergencyPage from "./pages/EmergencyPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
+import AdminSignup from "./pages/AdminSignup";
 
 function App() {
   return (
@@ -35,6 +40,11 @@ function App() {
         <Route path="/counselor/login" element={<CounselorLogin />} />
         <Route path="/CounselorDashboard" element={<CounselorDashboard />} />
         <Route path="/StudentsPage" element={<StudentsPage />} />
+        <Route path="/SettingsPage" element={<SettingsPage />} />
+        <Route path="/EmergencyPage" element={<EmergencyPage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/signup" element={<AdminSignup />} />
       </Routes>
       <Chatbot />
     </Router>

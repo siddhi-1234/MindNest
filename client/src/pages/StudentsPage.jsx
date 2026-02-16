@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Mail,
   Send,
+  ChevronLeft, // ✅ Added ChevronLeft icon
 } from "lucide-react";
 import {
   BarChart,
@@ -668,6 +669,14 @@ const StudentsPage = () => {
         className="border-b border-white/10 px-4 md:px-6 h-16 flex items-center justify-between shrink-0 z-30 relative shadow-md"
       >
         <div className="flex items-center gap-3">
+          {/* ✅ Added Link to Dashboard with ChevronLeft Icon */}
+          <Link
+            to="/CounselorDashboard"
+            className="md:hidden text-white hover:text-cyan-300"
+          >
+            <ChevronLeft size={24} />
+          </Link>
+
           <button
             className="md:hidden text-white hover:text-cyan-300"
             onClick={() => setIsListOpen(!isListOpen)}
@@ -680,8 +689,8 @@ const StudentsPage = () => {
               alt="MindNest"
               className="w-8 h-8 object-contain logo-hover"
             />
-            <span className="text-lg font-bold text-white tracking-tight logo-hover">
-              Counselor Portal
+            <span className="text-lg font-bold text-white tracking-tight hidden sm:block logo-hover">
+              MindNest Counselor Portal
             </span>
           </div>
         </div>
@@ -744,7 +753,6 @@ const StudentsPage = () => {
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {selectedStudent ? (
             <div className="max-w-6xl mx-auto space-y-6">
-              {/* Header */}
               <div className="bg-[#d8e2dc] rounded-2xl p-6 border border-gray-100 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
                   <div className="relative">
@@ -863,7 +871,6 @@ const StudentsPage = () => {
                       </div>
                     </div>
                     <div className="p-4 md:p-6 space-y-6 flex-1 overflow-y-auto">
-                      {/* ✅ CLEANER: Single NoteEditor since other tabs were removed */}
                       <NoteEditor
                         title="Session Notes & Observations"
                         notes={sessionNotes}
@@ -875,7 +882,6 @@ const StudentsPage = () => {
                         }
                       />
 
-                      {/* ✅ FILE ATTACHMENTS AREA */}
                       <div className="pt-6 border-t border-gray-100">
                         <label className="block text-xs font-bold text-cyan-700 uppercase tracking-wider mb-3">
                           Digital Resources

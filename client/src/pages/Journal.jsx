@@ -300,6 +300,9 @@ const JournalDashboard = () => {
           <a href="/counselling" className="hover:text-white transition">
             Counselling
           </a>
+          <a href="/EmergencyPage" className="hover:text-white transition">
+            Emergency
+          </a>
         </div>
 
         <button
@@ -320,8 +323,11 @@ const JournalDashboard = () => {
             <a href="/Journal" className="text-gray-300">
               Journal
             </a>
-            <a href="#" className="text-gray-300">
+            <a href="/counselling" className="text-gray-300">
               Counselling
+            </a>
+            <a href="/EmergencyPage" className="text-gray-300">
+              Emergency
             </a>
           </div>
         )}

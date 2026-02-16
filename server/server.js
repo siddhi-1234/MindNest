@@ -10,6 +10,7 @@ import moodRoutes from "./routes/moodRoutes.js";
 import journalRoutes from "./routes/journal.js";
 import counselorRoutes from "./routes/counselorRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 // === COMPATIBILITY SETUP ===
 // This allows us to use 'require' for the Chatbot libraries inside this ESM file
@@ -103,6 +104,7 @@ app.post("/api/send-email-with-attachments", async (req, res) => {
 app.use("/api/mood", moodRoutes);
 app.use("/api/Journals", journalRoutes);
 app.use("/api/counselors", counselorRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/appointments", require("./routes/appointmentRoutes"));
 
 app.get("/", (req, res) => {

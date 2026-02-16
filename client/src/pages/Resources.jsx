@@ -231,6 +231,9 @@ const Resources = () => {
           <a href="/Counselling" className="hover:text-white transition">
             Counselling
           </a>
+          <a href="/EmergencyPage" className="hover:text-white transition">
+            Emergency
+          </a>
         </div>
 
         <div className="flex items-center gap-4">
@@ -271,6 +274,12 @@ const Resources = () => {
               className="text-gray-300 hover:text-white hover:bg-gray-700/50 px-6 py-4 border-b border-gray-700/50"
             >
               Counselling
+            </a>
+            <a
+              href="/EmergencyPage"
+              className="text-gray-300 hover:text-white hover:bg-gray-700/50 px-6 py-4 border-b border-gray-700/50"
+            >
+              Emergency
             </a>
           </div>
         )}

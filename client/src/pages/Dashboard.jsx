@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../App.css";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth"; // Added signOut
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { HiMenu, HiX } from "react-icons/hi";
 import {
   User,
@@ -10,8 +10,6 @@ import {
   BookOpen,
   MessageCircle,
   Calendar,
-  Phone,
-  MapPin,
   Shield,
   PlayCircle,
   CloudRain,
@@ -65,7 +63,7 @@ const Dashboard = () => {
       setLast7Moods(data);
       const today = new Date().toISOString().split("T")[0];
       const loggedToday = data.some(
-        (entry) => entry.date?.split("T")[0] === today
+        (entry) => entry.date?.split("T")[0] === today,
       );
       setAlreadyLoggedToday(loggedToday);
     } catch (err) {
@@ -195,6 +193,11 @@ const Dashboard = () => {
               Counseling
             </a>
           </li>
+          <li>
+            <a href="/EmergencyPage" className="hover:text-white transition">
+              Emergency
+            </a>
+          </li>
         </ul>
 
         {/* === INTERACTIVE PROFILE DROPDOWN === */}
@@ -269,6 +272,12 @@ const Dashboard = () => {
               className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
             >
               Counseling
+            </a>
+            <a
+              href="/EmergencyPage"
+              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
+            >
+              Emergency
             </a>
             <a
               href="/Settings"
@@ -504,8 +513,8 @@ const Dashboard = () => {
                           item.mood === "Great"
                             ? "text-green-400 bg-green-400/10"
                             : item.mood === "Bad"
-                            ? "text-orange-400 bg-orange-400/10"
-                            : "text-blue-400 bg-blue-400/10"
+                              ? "text-orange-400 bg-orange-400/10"
+                              : "text-blue-400 bg-blue-400/10"
                         }`}
                       >
                         {item.mood}
@@ -514,37 +523,6 @@ const Dashboard = () => {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Campus Resources */}
-            <div className="bg-[#1E293B] p-6 rounded-3xl shadow-sm border border-gray-700">
-              <h3 className="font-bold text-white mb-4">Quick Contacts</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400">
-                    <Phone size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-200">
-                      Campus Counselor
-                    </p>
-                    <p className="text-xs text-gray-500">(123) 456-7890</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
-                    <MapPin size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-200">
-                      Wellness Center
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Student Union, Room 201
-                    </p>
-                  </div>
-                </li>
-              </ul>
             </div>
           </div>
         </div>

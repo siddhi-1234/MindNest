@@ -28,7 +28,7 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
   const links = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/CounselorDashboard" },
     { icon: Users, label: "Students", path: "/StudentsPage" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: Settings, label: "Settings", path: "/SettingsPage" },
   ];
 
   return (

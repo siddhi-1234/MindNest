@@ -32,12 +32,11 @@ export default function SignUp() {
 
   return (
     <div
-      className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 overflow-y-auto" // Added overflow-y-auto for safety on small screens
+      className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 overflow-y-auto"
       style={{ backgroundImage: "url('/bg.jpeg')" }}
     >
-      {/* Reduced padding from p-6/p-8 to p-5/p-6 and max-width */}
       <div className="w-full max-w-sm bg-[#0f1d16]/80 backdrop-blur-xl rounded-2xl p-5 md:p-6 border border-white/10 shadow-2xl">
-        {/* Header - Compacted margins */}
+        {/* Header */}
         <div className="flex flex-col items-center mb-4">
           <div className="flex items-center gap-2">
             <img
@@ -60,7 +59,7 @@ export default function SignUp() {
           </div>
         )}
 
-        {/* Inputs Group - Reduced height (h-10) and margins */}
+        {/* Inputs Group */}
         <div className="space-y-3">
           <div>
             <label className="text-gray-400 text-xs ml-1 font-medium">
@@ -125,7 +124,7 @@ export default function SignUp() {
           </div>
         </div>
 
-        {/* Buttons - Compacted top margin */}
+        {/* Buttons */}
         <div className="mt-5">
           <button
             onClick={handleSignUp}
@@ -145,14 +144,22 @@ export default function SignUp() {
           </p>
         </div>
 
-        {/* Provider Link - Reduced padding */}
-        <div className="mt-4 pt-4 border-t border-white/10 text-center">
+        {/* Provider Links */}
+        <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-2 text-center">
           <Link
             to="/counselor/login"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-green-500/80 hover:text-green-400 transition-colors bg-green-500/10 px-3 py-1.5 rounded-full"
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-green-500/80 hover:text-green-400 transition-colors bg-green-500/10 px-3 py-1.5 rounded-full"
           >
             Are you a professional?{" "}
             <span className="underline">Access Counsellor Portal</span>
+          </Link>
+
+          <Link
+            to="/admin/login"
+            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-blue-400/80 hover:text-blue-300 transition-colors bg-blue-500/10 px-3 py-1.5 rounded-full"
+          >
+            Are you an administrator?{" "}
+            <span className="underline">Access Admin Portal</span>
           </Link>
         </div>
       </div>
