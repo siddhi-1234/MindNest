@@ -7,29 +7,24 @@ import Crisis from "../models/Crisis.js";
 const router = express.Router();
 
 // ================= ADMIN SIGNUP =================
-// Route: POST /api/admin/signup
-// Expects: JSON { "name": "...", "email": "...", "uid": "..." }
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, uid } = req.body;
 
-    // 1. Validate Input
     if (!name || !email || !uid) {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    // 2. Check if admin already exists
     const existingAdmin = await Admin.findOne({ email });
     if (existingAdmin) {
       return res.status(400).json({ message: "Admin account already exists." });
     }
 
-    // 3. Create new Admin (No document upload)
     const newAdmin = new Admin({
       uid,
       name,
       email,
-      status: "Pending", // Default status is Pending approval
+      status: "Pending",
     });
 
     await newAdmin.save();
@@ -45,6 +40,7 @@ router.post("/signup", async (req, res) => {
 });
 
 // ================= ADMIN DASHBOARD STATS =================
+// ✅ FEATURE 1 & 2: Return real counts for students and crisis alerts
 router.get("/stats", async (req, res) => {
   try {
     // 1. Real Count of Students
@@ -55,7 +51,7 @@ router.get("/stats", async (req, res) => {
       status: "Verified",
     });
 
-    // 3. Real Count of Crisis Alerts (Last 24 hours or Total)
+    // 3. Real Count of Crisis Alerts (Total records in Crisis collection)
     const crisisCount = await Crisis.countDocuments();
 
     res.json({
@@ -69,12 +65,28 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// ================= NEW ROUTE: LOG CRISIS =================
+// ✅ FEATURE 2: API to record when a student clicks an emergency button
+router.post("/crisis", async (req, res) => {
+  try {
+    const { type } = req.body; // e.g., "911_Call", "Quick_Calm"
+    const newCrisis = new Crisis({
+      type,
+      timestamp: new Date(),
+    });
+    await newCrisis.save();
+    res.status(201).json({ message: "Crisis recorded" });
+  } catch (error) {
+    console.error("Crisis Log Error:", error);
+    res.status(500).json({ message: "Error logging crisis" });
+  }
+});
+
 // ================= GET COUNSELOR APPLICATIONS =================
 router.get("/counselors", async (req, res) => {
   try {
-    // Fetch all counselors, sorted by Pending status first
     const counselors = await Counselor.find().sort({
-      status: 1,
+      status: 1, // Pending first
       createdAt: -1,
     });
     res.json(counselors);
@@ -86,7 +98,7 @@ router.get("/counselors", async (req, res) => {
 // ================= UPDATE COUNSELOR STATUS =================
 router.put("/counselor/:id/status", async (req, res) => {
   try {
-    const { status } = req.body; // "Verified" or "Rejected"
+    const { status } = req.body;
     const updatedCounselor = await Counselor.findByIdAndUpdate(
       req.params.id,
       { status },
@@ -108,20 +120,40 @@ router.delete("/counselor/:id", async (req, res) => {
   }
 });
 
+// ================= UPDATE ADMIN PROFILE =================
+// Route: PUT /api/admin/:uid
+router.put("/:uid", async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    // Find admin by UID and update
+    const updatedAdmin = await Admin.findOneAndUpdate(
+      { uid: req.params.uid },
+      { name, email },
+      { new: true }, // Return the updated document
+    );
+
+    if (!updatedAdmin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    res.json(updatedAdmin);
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(500).json({ message: "Error updating profile" });
+  }
+});
+
 // ================= ADMIN LOGIN / CHECK STATUS =================
-// Route: GET /api/admin/:uid
-// Used after Firebase login to check if the user is an Admin and if they are Verified
 router.get("/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-
     const admin = await Admin.findOne({ uid });
 
     if (!admin) {
       return res.status(404).json({ message: "Admin profile not found." });
     }
 
-    // Update last login timestamp
     admin.lastLogin = new Date();
     await admin.save();
 

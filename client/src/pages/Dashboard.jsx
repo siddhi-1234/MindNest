@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../App.css";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { HiMenu, HiX } from "react-icons/hi";
 import {
   User,
   Smile,
@@ -14,8 +13,7 @@ import {
   PlayCircle,
   CloudRain,
   Clock,
-  LogOut, // New Icon
-  Settings, // New Icon
+  LogOut,
 } from "lucide-react";
 
 import Chatbot from "../pages/Chatbot";
@@ -31,26 +29,20 @@ const moodOptions = [
 const Dashboard = () => {
   const [selectedMood, setSelectedMood] = useState(null);
   const [note, setNote] = useState("");
-  const [open, setOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [last7Moods, setLast7Moods] = useState([]);
   const [alreadyLoggedToday, setAlreadyLoggedToday] = useState(false);
-
-  // === CHATBOT STATE ===
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [startMessage, setStartMessage] = useState("");
-
-  // === NEW: PROFILE DROPDOWN STATE ===
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const API_URL = "http://localhost:5000/api/mood";
 
-  // === HANDLE LOGOUT ===
   const handleLogout = async () => {
     const auth = getAuth();
     try {
       await signOut(auth);
-      window.location.href = "/"; // Redirect to login/home after logout
+      window.location.href = "/";
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -77,38 +69,25 @@ const Dashboard = () => {
       if (currentUser) {
         setUser(currentUser);
         fetchLast7Days(currentUser.uid);
-      } else {
-        // Optional: Redirect if not logged in
-        // window.location.href = "/";
       }
     });
   }, []);
 
   const logMood = async () => {
-    if (!selectedMood || !user) {
-      alert("Please select a mood");
-      return;
-    }
+    if (!selectedMood || !user) return;
     try {
       const res = await fetch(`${API_URL}/log`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.uid,
-          mood: selectedMood,
-          note,
-        }),
+        body: JSON.stringify({ userId: user.uid, mood: selectedMood, note }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message);
-        return;
+      if (res.ok) {
+        setSelectedMood(null);
+        setNote("");
+        fetchLast7Days(user.uid);
       }
-      setSelectedMood(null);
-      setNote("");
-      fetchLast7Days(user.uid);
     } catch (err) {
-      console.error("Error logging mood:", err);
+      console.error(err);
     }
   };
 
@@ -123,14 +102,14 @@ const Dashboard = () => {
       category: "MEDITATION",
       title: "5-Minute Breathing Exercise",
       image:
-        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=2073",
     },
     {
       id: 2,
       category: "MINDFULNESS",
       title: "Guide to Mindful Walking",
       image:
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2071",
     },
     {
       id: 3,
@@ -142,36 +121,33 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0F172A] font-sans text-gray-200 pt-20 md:pt-24 relative overflow-x-hidden">
-      {/* === CHATBOT INTEGRATION === */}
+    <div className="min-h-screen bg-[#0F172A] font-sans text-gray-200 relative overflow-x-hidden">
+      {/* 1. BACKGROUND ORBS */}
+      <div className="mesh-bg">
+        <div className="aurora-orb orb-1"></div>
+        <div className="aurora-orb orb-2"></div>
+        <div className="aurora-orb orb-3"></div>
+      </div>
+
       <Chatbot
         isOpenProp={isChatOpen}
         setIsOpenProp={setIsChatOpen}
         autoSendQuery={startMessage}
       />
 
-      {/* ===================== NAVBAR ===================== */}
-      <nav className="fixed top-0 left-0 w-full z-50 bg-[#0F172A] px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+      {/* 2. NAVIGATION BAR */}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-[#0F172A]/60 backdrop-blur-xl px-6 py-4 border-b border-white/5 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
             alt="MindNest"
-            className="w-9 h-8 md:w-10 md:h-10 object-contain logo-hover"
+            className="w-10 h-10 object-contain logo-hover"
           />
-          <h1 className="text-[#6bdfb2] text-lg md:text-xl font-bold tracking-wide logo-hover">
+          <h1 className="text-[#6bdfb2] text-xl font-bold tracking-wide">
             MindNest
           </h1>
         </div>
 
-        {/* Mobile Hamburger */}
-        <button
-          className="md:hidden text-gray-300 text-2xl focus:outline-none"
-          onClick={() => setOpen(!open)}
-        >
-          {open ? <HiX /> : <HiMenu />}
-        </button>
-
-        {/* Desktop Menu */}
         <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <li>
             <a href="/dashboard" className="hover:text-white transition">
@@ -200,126 +176,49 @@ const Dashboard = () => {
           </li>
         </ul>
 
-        {/* === INTERACTIVE PROFILE DROPDOWN === */}
-        <div className="hidden md:block relative">
+        <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition focus:outline-none"
+            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition"
           >
             <User className="text-white" size={24} />
           </button>
-
-          {/* Dropdown Menu */}
           {isProfileOpen && (
-            <div className="absolute right-0 top-12 w-56 bg-[#1E293B] border border-gray-700 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-2">
-              <div className="px-4 py-3 border-b border-gray-700">
-                <p className="text-sm text-white font-bold">Student Account</p>
-                <p className="text-xs text-gray-400 truncate">
-                  {user?.email || "Loading..."}
-                </p>
+            <div className="absolute right-0 top-12 w-56 bg-[#1E293B] border border-white/5 rounded-2xl shadow-2xl py-2 z-50 overflow-hidden backdrop-blur-3xl">
+              <div className="px-4 py-3 border-b border-white/5">
+                <p className="text-xs text-gray-400 truncate">{user?.email}</p>
               </div>
-
-              <div className="py-1">
-                <a
-                  href="/Dashboard"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition"
-                >
-                  <User size={16} /> My Profile
-                </a>
-                <a
-                  href="/Settings"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition"
-                >
-                  <Settings size={16} /> Settings
-                </a>
-              </div>
-
-              <div className="border-t border-gray-700 mt-1 pt-1">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition text-left"
-                >
-                  <LogOut size={16} /> Sign Out
-                </button>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
+              >
+                <LogOut size={16} /> Sign Out
+              </button>
             </div>
           )}
         </div>
-
-        {/* Mobile Dropdown Menu (Navbar Links) */}
-        {open && (
-          <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50 animate-in slide-in-from-top-5">
-            <a
-              href="/dashboard"
-              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
-            >
-              Dashboard
-            </a>
-            <a
-              href="/Resources"
-              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
-            >
-              Resources
-            </a>
-            <a
-              href="/journal"
-              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
-            >
-              Journal
-            </a>
-            <a
-              href="/counselling"
-              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
-            >
-              Counseling
-            </a>
-            <a
-              href="/EmergencyPage"
-              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
-            >
-              Emergency
-            </a>
-            <a
-              href="/Settings"
-              className="text-gray-300 p-4 border-b border-gray-700 hover:bg-gray-700"
-            >
-              Settings
-            </a>
-
-            {/* Mobile Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="text-red-400 p-4 text-left hover:bg-gray-700 flex items-center gap-2"
-            >
-              <LogOut size={18} /> Sign Out
-            </button>
-          </div>
-        )}
       </nav>
 
-      {/* --- MAIN CONTENT --- */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
-        <header className="mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 glow-pulse">
+      {/* 3. MAIN CONTENT LAYER */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-28 relative z-10">
+        <header className="mb-10 welcome-text">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-3 tracking-tight glow-pulse">
             Hello, Student 👋
           </h1>
-          <p className="text-gray-400 text-sm md:text-base">
-            "The best way to predict the future is to create it." - Peter
-            Drucker
+          <p className="text-gray-400 text-lg opacity-80">
+            "The best way to predict the future is to create it."
           </p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ================= LEFT COLUMN ================= */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-10">
             {/* MOOD CHECK-IN */}
-            <div className="bg-[#1E293B] p-6 rounded-3xl shadow-lg border border-gray-700">
-              <h3 className="font-bold text-lg text-white mb-6">
+            <div className="glass-card p-8 rounded-[2.5rem] shadow-2xl">
+              <h3 className="font-bold text-xl text-white mb-8">
                 How are you feeling today?
               </h3>
-
-              <div className="flex flex-col gap-6">
-                <div className="flex justify-between md:justify-start md:gap-8 overflow-x-auto pb-2">
+              <div className="flex flex-col gap-8">
+                <div className="flex justify-between md:justify-start md:gap-10 overflow-x-auto pb-4">
                   {moodOptions.map((mood, i) => {
                     const Icon = mood.icon;
                     const isSelected = selectedMood === mood.value;
@@ -329,27 +228,15 @@ const Dashboard = () => {
                         onClick={() =>
                           !alreadyLoggedToday && setSelectedMood(mood.value)
                         }
-                        className={`cursor-pointer flex flex-col items-center gap-2 transition-all duration-200 min-w-[60px] 
-                          ${
-                            alreadyLoggedToday
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:scale-110"
-                          }`}
+                        className={`cursor-pointer flex flex-col items-center gap-3 transition-all duration-300 ${alreadyLoggedToday ? "opacity-40" : "hover:scale-110"}`}
                       >
                         <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 border-2
-                            ${
-                              isSelected
-                                ? "bg-blue-600/20 border-blue-500 scale-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                                : "bg-[#0F172A] border-gray-700 hover:border-gray-500"
-                            }`}
+                          className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all ${isSelected ? "bg-blue-600/30 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-110" : "bg-[#0F172A] border-white/10"}`}
                         >
-                          <Icon size={26} className={mood.color} />
+                          <Icon size={28} className={mood.color} />
                         </div>
                         <span
-                          className={`text-xs font-medium ${
-                            isSelected ? "text-white" : "text-gray-500"
-                          }`}
+                          className={`text-xs font-bold ${isSelected ? "text-white" : "text-gray-500"}`}
                         >
                           {mood.label}
                         </span>
@@ -357,28 +244,25 @@ const Dashboard = () => {
                     );
                   })}
                 </div>
-
-                <div className="space-y-4">
-                  <textarea
-                    className="w-full bg-[#0F172A] text-gray-200 rounded-xl p-4 text-sm resize-none border border-gray-700 focus:border-blue-500 focus:outline-none transition"
-                    rows="3"
-                    placeholder="Add an optional note about your day..."
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
-                  <button
-                    onClick={logMood}
-                    disabled={alreadyLoggedToday}
-                    className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-8 py-2.5 rounded-full font-bold transition shadow-lg shadow-blue-900/20"
-                  >
-                    {alreadyLoggedToday ? "Mood Logged ✅" : "Log Mood"}
-                  </button>
-                </div>
+                <textarea
+                  className="w-full bg-[#0F172A]/50 text-white rounded-2xl p-5 border border-white/5 focus:border-blue-500 focus:outline-none transition-all"
+                  rows="3"
+                  placeholder="Add an optional note..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <button
+                  onClick={logMood}
+                  disabled={alreadyLoggedToday}
+                  className="w-full md:w-max bg-blue-600 hover:bg-blue-500 text-white px-12 py-4 rounded-2xl font-bold transition shadow-xl disabled:bg-gray-800"
+                >
+                  {alreadyLoggedToday ? "Mood Logged ✅" : "Save Today's Mood"}
+                </button>
               </div>
             </div>
 
-            {/* QUICK ACCESS GRID */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* QUICK ACTIONS */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               <QuickActionCard
                 icon={<Smile size={24} />}
                 label="Mood Tracker"
@@ -392,19 +276,15 @@ const Dashboard = () => {
                 bg="bg-purple-400/10"
                 link="/journal"
               />
-
               <div
                 onClick={() => setIsChatOpen(true)}
-                className="bg-[#1E293B] p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-800 transition border border-gray-700 group"
+                className="glass-card p-6 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-white/5 transition border border-white/5 group"
               >
-                <div className="p-3 bg-blue-500/10 rounded-full group-hover:scale-110 transition">
+                <div className="p-4 bg-blue-500/10 rounded-full group-hover:scale-110 transition">
                   <MessageCircle size={24} className="text-blue-400" />
                 </div>
-                <span className="font-bold text-xs md:text-sm text-gray-300 text-center">
-                  AI Chat
-                </span>
+                <span className="font-bold text-sm text-gray-300">AI Chat</span>
               </div>
-
               <QuickActionCard
                 icon={<PlayCircle size={24} />}
                 label="Meditate"
@@ -419,37 +299,37 @@ const Dashboard = () => {
                 bg="bg-orange-400/10"
                 link="/counselling"
               />
-
-              <div className="bg-red-900/20 p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center gap-3 border border-red-500/30 cursor-pointer hover:bg-red-900/30 transition">
-                <Shield size={24} className="text-red-500" />
-                <span className="font-bold text-xs md:text-sm text-red-400">
-                  Crisis Help
-                </span>
-              </div>
+              <QuickActionCard
+                icon={<Shield size={24} />}
+                label="Crisis Help"
+                color="text-red-400"
+                bg="bg-red-400/10"
+                link="/EmergencyPage"
+              />
             </div>
 
-            {/* WELLNESS RESOURCES */}
+            {/* RESOURCES GRID */}
             <div>
-              <h3 className="font-bold text-lg text-white mb-4">
+              <h3 className="font-bold text-xl text-white mb-6">
                 Recommended for You
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {resources.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-[#1E293B] rounded-2xl p-3 border border-gray-700 hover:border-gray-600 transition cursor-pointer group"
+                    className="glass-card rounded-[2rem] p-4 hover:scale-[1.03] transition-all cursor-pointer group shadow-xl"
                   >
-                    <div className="h-32 w-full overflow-hidden rounded-xl mb-3">
+                    <div className="h-40 w-full overflow-hidden rounded-2xl mb-4 shadow-inner">
                       <img
                         src={item.image}
                         alt={item.title}
-                        className="h-full w-full object-cover group-hover:scale-105 transition duration-500"
+                        className="h-full w-full object-cover group-hover:scale-110 transition duration-700"
                       />
                     </div>
-                    <p className="text-[10px] font-bold text-blue-400 tracking-wider mb-1">
+                    <p className="text-[10px] font-black text-blue-400 tracking-widest mb-2 uppercase">
                       {item.category}
                     </p>
-                    <h4 className="font-bold text-sm text-gray-200 line-clamp-1">
+                    <h4 className="font-bold text-sm text-gray-100">
                       {item.title}
                     </h4>
                   </div>
@@ -458,16 +338,16 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* ================= RIGHT COLUMN (SIDEBAR) ================= */}
-          <div className="space-y-6">
-            {/* AI Assistant Widget */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-3xl shadow-xl text-center text-white">
-              <h3 className="font-bold text-lg mb-1">AI Assistant</h3>
-              <p className="text-xs text-blue-100 mb-6">
+          {/* SIDEBAR */}
+          <div className="space-y-8">
+            <div className="bg-gradient-to-br from-blue-600/90 to-blue-900/90 backdrop-blur-3xl p-8 rounded-[2.5rem] shadow-2xl border border-white/10 text-center text-white">
+              <h3 className="font-black text-2xl mb-2 tracking-tight">
+                AI Assistant
+              </h3>
+              <p className="text-xs text-blue-100 mb-8 opacity-80">
                 I'm here to listen. How are you feeling?
               </p>
-
-              <div className="flex flex-wrap justify-center gap-2 mb-6">
+              <div className="flex flex-wrap justify-center gap-2 mb-8">
                 <Chip
                   label="I feel stressed"
                   onClick={() => openChatWithContext("I feel stressed")}
@@ -481,41 +361,34 @@ const Dashboard = () => {
                   onClick={() => openChatWithContext("Help me relax")}
                 />
               </div>
-
               <button
                 onClick={() => setIsChatOpen(true)}
-                className="w-full bg-white text-blue-700 py-3 rounded-xl font-bold shadow-md hover:bg-gray-100 transition"
+                className="w-full bg-white text-blue-700 py-4 rounded-2xl font-black shadow-xl hover:scale-[0.98] transition"
               >
                 Chat Now
               </button>
             </div>
 
-            {/* Last 7 Days Moods */}
-            <div className="bg-[#1E293B] p-6 rounded-3xl shadow-sm border border-gray-700">
-              <h3 className="font-bold text-white mb-4">Mood History</h3>
+            <div className="glass-card p-8 rounded-[2.5rem]">
+              <h3 className="font-bold text-white mb-6 text-lg tracking-tight">
+                Mood History
+              </h3>
               {last7Moods.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500">No data yet.</p>
+                <div className="text-center py-10 opacity-40">
+                  <p className="text-sm">No history found.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {last7Moods.map((item) => (
+                <div className="space-y-4">
+                  {last7Moods.slice(0, 5).map((item) => (
                     <div
                       key={item._id}
-                      className="flex justify-between items-center text-sm p-2 bg-[#0F172A] rounded-lg"
+                      className="flex justify-between items-center p-4 bg-[#0F172A]/50 rounded-2xl border border-white/5 shadow-sm"
                     >
-                      <span className="text-gray-400 text-xs flex items-center gap-2">
-                        <Clock size={14} /> {item.date}
+                      <span className="text-gray-400 text-[10px] font-bold uppercase tracking-tighter flex items-center gap-2">
+                        <Clock size={12} /> {item.date}
                       </span>
                       <span
-                        className={`font-bold px-2 py-1 rounded text-xs
-                        ${
-                          item.mood === "Great"
-                            ? "text-green-400 bg-green-400/10"
-                            : item.mood === "Bad"
-                              ? "text-orange-400 bg-orange-400/10"
-                              : "text-blue-400 bg-blue-400/10"
-                        }`}
+                        className={`font-black px-3 py-1 rounded-full text-[10px] uppercase tracking-widest ${item.mood === "Great" ? "text-green-400 bg-green-400/10" : "text-blue-400 bg-blue-400/10"}`}
                       >
                         {item.mood}
                       </span>
@@ -531,28 +404,24 @@ const Dashboard = () => {
   );
 };
 
-// Component for Quick Action Cards
 const QuickActionCard = ({ icon, label, color, bg, link }) => (
   <a
     href={link || "#"}
-    className="bg-[#1E293B] p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-800 transition border border-gray-700 group text-decoration-none"
+    className="glass-card p-6 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-white/5 transition-all border border-white/5 group shadow-lg"
   >
     <div
-      className={`p-3 rounded-full transition group-hover:scale-110 ${bg} ${color}`}
+      className={`p-4 rounded-full transition group-hover:scale-110 ${bg} ${color}`}
     >
       {React.cloneElement(icon, { className: color })}
     </div>
-    <span className="font-bold text-xs md:text-sm text-gray-300 text-center">
-      {label}
-    </span>
+    <span className="font-bold text-sm text-gray-300">{label}</span>
   </a>
 );
 
-// Component for Assistant Chips
 const Chip = ({ label, onClick }) => (
   <span
     onClick={onClick}
-    className="bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-xs font-medium text-white cursor-pointer border border-white/10 transition"
+    className="bg-white/10 hover:bg-white/25 px-4 py-2 rounded-full text-[10px] font-black text-white cursor-pointer border border-white/10 transition uppercase tracking-wider"
   >
     {label}
   </span>

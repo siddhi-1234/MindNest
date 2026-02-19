@@ -20,6 +20,7 @@ import EmergencyPage from "./pages/EmergencyPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminSignup from "./pages/AdminSignup";
+import AdminSettings from "./pages/AdminSettings";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/signup" element={<AdminSignup />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
       </Routes>
       <Chatbot />
     </Router>

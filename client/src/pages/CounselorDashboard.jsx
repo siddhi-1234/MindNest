@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -18,18 +18,27 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
-// --- Sidebar (Updated with Navigation Links) ---
-
+// --- Sidebar ---
 const Sidebar = ({ isOpen, toggleSidebar, user }) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const links = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/CounselorDashboard" },
     { icon: Users, label: "Students", path: "/StudentsPage" },
     { icon: Settings, label: "Settings", path: "/SettingsPage" },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/counselor/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   return (
     <>
@@ -109,7 +118,10 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-100">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+          >
             <LogOut size={20} /> Log Out
           </button>
         </div>
@@ -118,8 +130,7 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
   );
 };
 
-// --- Header (Dynamic User Props) ---
-
+// --- Header ---
 const Header = ({ toggleSidebar, user }) => (
   <header className="bg-[#7b2cbf] border-b border-[#5a189a] px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
     <div className="flex items-center gap-4">
@@ -162,13 +173,12 @@ const Header = ({ toggleSidebar, user }) => (
   </header>
 );
 
-// ================= MAIN AREA =================
-
+// ================= MAIN DASHBOARD =================
 const CounselorDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  const navigate = useNavigate();
 
-  // State for Dynamic Data
   const [counselor, setCounselor] = useState({
     name: "Loading...",
     title: "",
@@ -176,14 +186,12 @@ const CounselorDashboard = () => {
     email: "",
   });
 
-  // ✅ FIX 1: Initialize stats to 0, not dummy numbers
   const [stats, setStats] = useState({
     sessionsToday: 0,
     pendingRequests: 0,
-    avgWellness: 0, // Default to 0 or calculate dynamically if backend supports it
+    avgWellness: 0,
   });
 
-  // Fetch Data Logic
   useEffect(() => {
     const fetchData = async (user) => {
       try {
@@ -191,27 +199,28 @@ const CounselorDashboard = () => {
         const counselorsRes = await axios.get(
           "http://localhost:5000/api/counselors",
         );
-        const currentCounselor =
-          counselorsRes.data.find((c) => c.uid === user.uid) ||
-          counselorsRes.data[0];
+        const currentCounselor = counselorsRes.data.find(
+          (c) => c.uid === user.uid,
+        );
 
-        if (currentCounselor) {
-          setCounselor(currentCounselor);
+        // ✅ SECURITY CHECK: If user is not verified, kick them out
+        if (!currentCounselor || currentCounselor.status !== "Verified") {
+          await signOut(auth);
+          alert("Access Denied: Your account is not verified.");
+          navigate("/counselor/login");
+          return;
         }
 
-        // 2. Fetch Appointments for stats
+        setCounselor(currentCounselor);
+
+        // 2. Fetch Appointments
         const apptRes = await axios.get(
           "http://localhost:5000/api/appointments",
         );
-
-        // ✅ FIX 2: Filter appointments ONLY for the current counselor
         const myAppointments =
           apptRes.data.filter((appt) => appt.counselorId === user.uid) || [];
 
-        const todayDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD to match
-        // Or if you use "Oct 23" format, ensure you convert properly.
-        // Assuming YYYY-MM-DD from previous fixes:
-
+        const todayDate = new Date().toISOString().split("T")[0];
         const sessionsTodayCount = myAppointments.filter(
           (appt) => appt.date === todayDate && appt.status === "confirmed",
         ).length;
@@ -220,8 +229,6 @@ const CounselorDashboard = () => {
           (appt) => appt.status === "pending",
         ).length;
 
-        // Note: avgWellness would require a separate calculation if you have that data field
-        // For now, if no students, 0 is appropriate.
         const calculatedWellness = myAppointments.length > 0 ? 4.2 : 0;
 
         setStats({
@@ -231,23 +238,19 @@ const CounselorDashboard = () => {
         });
       } catch (error) {
         console.error("Error fetching dashboard data", error);
-        setCounselor({
-          name: "Counselor",
-          title: "Specialist",
-          email: user.email,
-        });
       }
     };
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCounselor((prev) => ({ ...prev, email: user.email }));
         fetchData(user);
+      } else {
+        navigate("/counselor/login");
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="flex h-screen bg-[#b298dc] font-sans">
@@ -256,12 +259,9 @@ const CounselorDashboard = () => {
         toggleSidebar={toggleSidebar}
         user={counselor}
       />
-
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header toggleSidebar={toggleSidebar} user={counselor} />
-
         <main className="flex-1 overflow-y-auto p-6 md:p-10 space-y-10">
-          {/* 1. Hero Section */}
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h4 className="text-[#07042c] font-bold text-xs tracking-widest uppercase mb-3">
               ACCOUNT: {counselor.email || "Loading..."}
@@ -273,9 +273,7 @@ const CounselorDashboard = () => {
             </h1>
           </div>
 
-          {/* 2. KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Card 1: Sessions Today */}
             <motion.div
               whileHover={{ y: -5 }}
               className="bg-[#065a60] p-6 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-between h-64"
@@ -307,7 +305,6 @@ const CounselorDashboard = () => {
               </div>
             </motion.div>
 
-            {/* Card 2: Pending Requests */}
             <motion.div
               whileHover={{ y: -5 }}
               className="bg-[#065a60] p-6 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-between h-64"
@@ -340,7 +337,6 @@ const CounselorDashboard = () => {
               </div>
             </motion.div>
 
-            {/* Card 3: Average Wellness Score */}
             <motion.div
               whileHover={{ y: -5 }}
               className="bg-[#065a60] p-6 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-between h-64"
@@ -379,7 +375,6 @@ const CounselorDashboard = () => {
           </div>
         </main>
       </div>
-
       <motion.button
         whileHover={{ scale: 1.1, rotate: 90 }}
         whileTap={{ scale: 0.9 }}

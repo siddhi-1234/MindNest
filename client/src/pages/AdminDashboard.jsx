@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
 import {
   LayoutGrid,
   Users,
@@ -10,11 +10,7 @@ import {
   Search,
   Bell,
   Download,
-  CheckCircle,
   AlertCircle,
-  Globe,
-  Shield,
-  History,
   LogOut,
   Menu,
   X,
@@ -34,7 +30,7 @@ import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import axios from "axios";
 
-// --- MOCK TRAFFIC DATA (Keep this for the chart as it's usually analytics data) ---
+// --- MOCK TRAFFIC DATA ---
 const trafficData = [
   { name: "00", value: 400 },
   { name: "04", value: 300 },
@@ -146,14 +142,6 @@ const CounselorModal = ({ counselor, onClose }) => {
               </span>
             </div>
           </div>
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-xs text-gray-500 uppercase font-bold mb-1">
-              Experience / Bio
-            </p>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              {counselor.bio || "No biography provided during registration."}
-            </p>
-          </div>
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
             <button
               onClick={onClose}
@@ -175,6 +163,7 @@ const AdminDashboard = () => {
     role: "",
   });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const navigate = useNavigate(); // ✅ Initialize useNavigate
 
   // Real Data State
   const [stats, setStats] = useState({ students: 0, counselors: 0, crisis: 0 });
@@ -190,6 +179,7 @@ const AdminDashboard = () => {
           axios.get("http://localhost:5000/api/admin/stats"),
           axios.get("http://localhost:5000/api/admin/counselors"),
         ]);
+        // ✅ 1) & 2) Sets real count for students and crisis from API
         setStats(statsRes.data);
         setCounselors(counselorsRes.data);
       } catch (error) {
@@ -216,11 +206,14 @@ const AdminDashboard = () => {
         } catch (error) {
           setAdminProfile({ name: "Admin", role: "Administrator" });
         }
+      } else {
+        // Optional: Redirect if not logged in
+        // navigate("/admin/login");
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   // Action Handlers
   const handleUpdateStatus = async (id, status) => {
@@ -250,9 +243,11 @@ const AdminDashboard = () => {
     }
   };
 
+  // ✅ 3) Logout button redirects to Admin Login
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to log out?")) {
       await signOut(auth);
+      navigate("/admin/login");
     }
   };
 
@@ -303,31 +298,7 @@ const AdminDashboard = () => {
           <SidebarItem
             icon={LayoutGrid}
             label="Overview"
-            path="/admin/dashboard"
-            onClick={() => setIsMobileSidebarOpen(false)}
-          />
-          <SidebarItem
-            icon={Users}
-            label="User Management"
-            path="/admin/users"
-            onClick={() => setIsMobileSidebarOpen(false)}
-          />
-          <SidebarItem
-            icon={ShieldCheck}
-            label="Counselor Verification"
-            path="/admin/verification"
-            onClick={() => setIsMobileSidebarOpen(false)}
-          />
-          <SidebarItem
-            icon={FileText}
-            label="Resource Moderation"
-            path="/admin/resources"
-            onClick={() => setIsMobileSidebarOpen(false)}
-          />
-          <SidebarItem
-            icon={Activity}
-            label="System Logs"
-            path="/admin/logs"
+            path="/admin"
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           <SidebarItem
@@ -371,27 +342,7 @@ const AdminDashboard = () => {
             >
               <Menu size={24} />
             </button>
-            <div className="relative hidden md:block w-96">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Search students, counselors, or logs..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 md:gap-4">
-            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg relative transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white animate-pulse"></span>
-            </button>
-            <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors">
-              <Download size={16} /> Export Reports
-            </button>
+            <h2 className="text-xl font-bold text-gray-900">Admin Dashboard</h2>
           </div>
         </header>
 
@@ -617,56 +568,6 @@ const AdminDashboard = () => {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in-up animation-delay-300">
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors">
-              <div className="p-2.5 bg-gray-50 text-gray-500 rounded-lg">
-                <History size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Last Backup
-                </p>
-                <p className="text-sm font-bold text-gray-900">2 hours ago</p>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors">
-              <div className="p-2.5 bg-gray-50 text-gray-500 rounded-lg">
-                <Globe size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Global Reach
-                </p>
-                <p className="text-sm font-bold text-gray-900">
-                  12 Campus Hubs
-                </p>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors">
-              <div className="p-2.5 bg-gray-50 text-gray-500 rounded-lg">
-                <Shield size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Security Status
-                </p>
-                <p className="text-sm font-bold text-green-600">Protected</p>
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors">
-              <div className="p-2.5 bg-gray-50 text-gray-500 rounded-lg">
-                <CheckCircle size={20} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  Version
-                </p>
-                <p className="text-sm font-bold text-gray-900">v4.2.0 Stable</p>
               </div>
             </div>
           </div>

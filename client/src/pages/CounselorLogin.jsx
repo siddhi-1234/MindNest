@@ -12,13 +12,12 @@ import {
   Briefcase,
   Loader2,
 } from "lucide-react";
-
-// 1. Import Firebase Auth
 import { auth } from "../firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendPasswordResetEmail, // 👈 Import this function
+  sendPasswordResetEmail,
+  signOut, // ✅ Imported signOut
 } from "firebase/auth";
 import axios from "axios";
 
@@ -26,12 +25,8 @@ const CounselorLogin = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  // Loading & Error States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [formData, setFormData] = useState({
     name: "",
     title: "",
@@ -41,29 +36,21 @@ const CounselorLogin = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(""); // Clear errors when typing
+    setError("");
   };
 
-  // === FORGOT PASSWORD LOGIC ===
   const handleForgotPassword = async (e) => {
     e.preventDefault();
-
-    // Check if email field is empty
     if (!formData.email) {
       setError("Please enter your email address first to reset your password.");
       return;
     }
-
     setLoading(true);
     setError("");
-
     try {
       await sendPasswordResetEmail(auth, formData.email);
-      alert(
-        `Password reset email sent to ${formData.email}. Please check your inbox.`,
-      );
+      alert(`Password reset email sent to ${formData.email}.`);
     } catch (err) {
-      console.error(err);
       setError(err.message.replace("Firebase: ", ""));
     } finally {
       setLoading(false);
@@ -77,15 +64,42 @@ const CounselorLogin = () => {
 
     try {
       if (isLogin) {
-        // ================= LOGIN LOGIC =================
-        await signInWithEmailAndPassword(
+        // --- LOGIN LOGIC ---
+        const userCredential = await signInWithEmailAndPassword(
           auth,
           formData.email,
           formData.password,
         );
+        const user = userCredential.user;
+
+        // Fetch Profile from DB to check status
+        const res = await axios.get("http://localhost:5000/api/counselors");
+        const counselor = res.data.find((c) => c.uid === user.uid);
+
+        if (!counselor) {
+          await signOut(auth);
+          setError("Counselor profile not found.");
+          setLoading(false);
+          return;
+        }
+
+        // ✅ SECURITY CHECK: Prevent login if not Verified
+        if (counselor.status !== "Verified") {
+          await signOut(auth);
+          if (counselor.status === "Pending") {
+            setError(
+              "Your account is still pending verification by an administrator.",
+            );
+          } else {
+            setError("Your account verification was rejected.");
+          }
+          setLoading(false);
+          return;
+        }
+
         navigate("/CounselorDashboard");
       } else {
-        // ================= SIGN UP LOGIC =================
+        // --- SIGNUP LOGIC ---
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           formData.email,
@@ -102,12 +116,17 @@ const CounselorLogin = () => {
           tags: ["New", "General Support"],
           description: "Dedicated professional ready to help students succeed.",
           role: "counselor",
+          status: "Pending", // ✅ Set status to Pending
         };
 
         await axios.post("http://localhost:5000/api/counselors", newCounselor);
 
-        alert("Account Created Successfully!");
-        navigate("/CounselorDashboard");
+        // ✅ Sign out immediately and alert user
+        await signOut(auth);
+        alert(
+          "Account created successfully! Please wait for admin verification before logging in.",
+        );
+        setIsLogin(true);
       }
     } catch (err) {
       console.error(err);
@@ -119,10 +138,8 @@ const CounselorLogin = () => {
 
   return (
     <div className="min-h-screen bg-[#240046] flex flex-col font-sans text-slate-800">
-      {/* --- Header --- */}
       <header className="px-6 py-4 bg-[#5a189a] border-b border-gray-100 relative z-50">
         <div className="flex items-center justify-between">
-          {/* Left: Logo & Brand */}
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
@@ -139,14 +156,12 @@ const CounselorLogin = () => {
         </div>
       </header>
 
-      {/* --- Main Content --- */}
       <div className="flex-1 flex items-center justify-center p-4 md:p-8">
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-w-5xl w-full min-h-[600px]">
-          {/* LEFT SIDE: Brand Info */}
+          {/* Brand Info (Left) */}
           <div className="md:w-1/2 bg-[#2C807F] p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full -ml-16 -mb-16 blur-3xl"></div>
-
             <div className="relative z-10">
               <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-6">
                 Restoring balance through professional care.
@@ -154,10 +169,9 @@ const CounselorLogin = () => {
               <p className="text-teal-100 text-base md:text-lg leading-relaxed">
                 Welcome to your dedicated workspace. Join our network of
                 certified professionals providing essential mental health
-                support to students worldwide.
+                support.
               </p>
             </div>
-
             <div className="space-y-6 relative z-10 mt-12 hidden md:block">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -184,18 +198,17 @@ const CounselorLogin = () => {
             </div>
           </div>
 
-          {/* RIGHT SIDE: Form */}
+          {/* Form (Right) */}
           <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-800 mb-2">
-                Professional Login
+                Professional Login and Registration
               </h2>
               <p className="text-slate-500 text-sm md:text-base">
                 Please enter your credentials to access your dashboard.
               </p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg mb-4 border border-red-100">
                 {error}
@@ -281,7 +294,6 @@ const CounselorLogin = () => {
                     Password
                   </label>
                   {isLogin && (
-                    /* Updated Forgot Password Link */
                     <button
                       type="button"
                       onClick={handleForgotPassword}
@@ -325,7 +337,7 @@ const CounselorLogin = () => {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? "Access Portal" : "Complete Registration"}
+                    {isLogin ? "Access Portal" : "Complete Registration"}{" "}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -338,7 +350,6 @@ const CounselorLogin = () => {
                 MindNest's agreement.
               </p>
             </div>
-
             <div className="mt-4 text-center">
               <Link
                 to="/"
