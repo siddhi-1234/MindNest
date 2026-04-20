@@ -100,13 +100,6 @@ export default function Login() {
           Log In
         </button>
 
-        <button
-          onClick={handleAnonymousLogin}
-          className="w-full text-gray-400 py-2 text-sm hover:text-white transition-colors"
-        >
-          Continue Anonymously
-        </button>
-
         <p className="text-center text-sm mt-8 text-gray-300">
           Don't have an account?{" "}
           <span
