@@ -73,7 +73,7 @@ const CounselorLogin = () => {
         const user = userCredential.user;
 
         // Fetch Profile from DB to check status
-        const res = await axios.get("http://localhost:5000/api/counselors");
+        const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
         const counselor = res.data.find((c) => c.uid === user.uid);
 
         if (!counselor) {
@@ -119,7 +119,7 @@ const CounselorLogin = () => {
           status: "Pending", // ✅ Set status to Pending
         };
 
-        await axios.post("http://localhost:5000/api/counselors", newCounselor);
+        await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`, newCounselor);
 
         // ✅ Sign out immediately and alert user
         await signOut(auth);

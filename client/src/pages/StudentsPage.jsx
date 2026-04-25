@@ -305,7 +305,7 @@ const AvailabilitySettings = ({ counselorId }) => {
   const saveAvailability = async () => {
     setLoading(true);
     try {
-      await axios.put(`http://localhost:5000/api/counselors/${counselorId}`, {
+      await axios.put(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors/${counselorId}`, {
         schedule,
       });
       alert("Availability updated successfully!");
@@ -430,7 +430,7 @@ const StudentsPage = () => {
     const fetchCounselorInfo = async () => {
       if (currentUser) {
         try {
-          const res = await axios.get("http://localhost:5000/api/counselors");
+          const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
           const me = res.data.find((c) => c.uid === currentUser.uid);
           setCurrentCounselorName(me ? me.name : "Counselor");
         } catch (error) {
@@ -444,7 +444,7 @@ const StudentsPage = () => {
   const fetchData = async () => {
     if (!currentUser) return;
     try {
-      const apptRes = await axios.get("http://localhost:5000/api/appointments");
+      const apptRes = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
       const myAppointments = apptRes.data.filter(
         (appt) => appt.counselorId === currentUser.uid,
       );
@@ -498,7 +498,7 @@ const StudentsPage = () => {
     const fetchStudentJournalCount = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/Journals?uid=${selectedStudent.id}`,
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/Journals?uid=${selectedStudent.id}`,
         );
         setJournalCount(Array.isArray(res.data) ? res.data.length : 0);
       } catch (err) {
@@ -554,7 +554,7 @@ const StudentsPage = () => {
           ],
         };
         await axios.post(
-          "http://localhost:5000/api/send-email-with-attachments",
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email-with-attachments`,
           emailPayload,
         );
         alert(`File "${fileObj.name}" sent successfully!`);
@@ -606,7 +606,7 @@ const StudentsPage = () => {
       };
 
       await axios.post(
-        "http://localhost:5000/api/send-email-with-attachments",
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email-with-attachments`,
         emailPayload,
       );
       setDrafts((prev) => ({ ...prev, notes: "" }));

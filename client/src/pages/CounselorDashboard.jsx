@@ -197,7 +197,7 @@ const CounselorDashboard = () => {
       try {
         // 1. Fetch Counselor Profile
         const counselorsRes = await axios.get(
-          "http://localhost:5000/api/counselors",
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`,
         );
         const currentCounselor = counselorsRes.data.find(
           (c) => c.uid === user.uid,
@@ -215,7 +215,7 @@ const CounselorDashboard = () => {
 
         // 2. Fetch Appointments
         const apptRes = await axios.get(
-          "http://localhost:5000/api/appointments",
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`,
         );
         const myAppointments =
           apptRes.data.filter((appt) => appt.counselorId === user.uid) || [];

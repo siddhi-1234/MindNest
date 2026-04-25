@@ -128,9 +128,13 @@ const cleanGoogleData = (field) => {
 
 app.post("/api/chat", async (req, res) => {
   const { text, sessionId } = req.body;
-  const sessionClient = new dialogflow.SessionsClient({
-    keyFilename: CREDENTIALS_PATH,
-  });
+  const sessionClientOptions = {};
+  if (process.env.DIALOGFLOW_CREDENTIALS) {
+    sessionClientOptions.credentials = JSON.parse(process.env.DIALOGFLOW_CREDENTIALS);
+  } else {
+    sessionClientOptions.keyFilename = CREDENTIALS_PATH;
+  }
+  const sessionClient = new dialogflow.SessionsClient(sessionClientOptions);
   const sessionPath = sessionClient.sessionPath(
     PROJECT_ID,
     sessionId || uuidv4(),

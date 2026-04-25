@@ -56,7 +56,7 @@ const JournalDashboard = () => {
       // Assuming your backend supports filtering by UID query param
       // If your API returns ALL journals, we filter on client side (shown below)
       const response = await fetch(
-        `http://localhost:5000/api/Journals?uid=${uid}`,
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/Journals?uid=${uid}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -119,7 +119,7 @@ const JournalDashboard = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/Journals", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/Journals`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +169,7 @@ const JournalDashboard = () => {
 
     // Call backend to delete (Optional implementation)
     try {
-      await fetch(`http://localhost:5000/api/Journals/${id}`, {
+      await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/Journals/${id}`, {
         method: "DELETE",
       });
     } catch (err) {

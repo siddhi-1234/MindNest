@@ -48,7 +48,7 @@ const Chatbot = ({ isOpenProp, setIsOpenProp, autoSendQuery }) => {
     setIsLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/chat", {
+      const res = await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/chat`, {
         text: textToSend,
         sessionId: "user-session-123",
       });

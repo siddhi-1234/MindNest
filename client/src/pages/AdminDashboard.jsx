@@ -176,8 +176,8 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         const [statsRes, counselorsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/admin/stats"),
-          axios.get("http://localhost:5000/api/admin/counselors"),
+          axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/stats`),
+          axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/counselors`),
         ]);
         // ✅ 1) & 2) Sets real count for students and crisis from API
         setStats(statsRes.data);
@@ -197,7 +197,7 @@ const AdminDashboard = () => {
         setCurrentUser(user);
         try {
           const res = await axios.get(
-            `http://localhost:5000/api/admin/${user.uid}`,
+            `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/${user.uid}`,
           );
           setAdminProfile({
             name: res.data.name,
@@ -219,7 +219,7 @@ const AdminDashboard = () => {
   const handleUpdateStatus = async (id, status) => {
     try {
       const res = await axios.put(
-        `http://localhost:5000/api/admin/counselor/${id}/status`,
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/counselor/${id}/status`,
         { status },
       );
       // Update local state
@@ -236,7 +236,7 @@ const AdminDashboard = () => {
     if (!window.confirm("Are you sure you want to remove this counselor?"))
       return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/counselor/${id}`);
+      await axios.delete(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/counselor/${id}`);
       setCounselors((prev) => prev.filter((c) => c._id !== id));
     } catch (error) {
       alert("Failed to delete");

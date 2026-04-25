@@ -22,7 +22,7 @@ const EmergencyPage = () => {
   const recordCrisis = async (type) => {
     try {
       // Ensure your backend is running on port 5000
-      await axios.post("http://localhost:5000/api/crisis", { type });
+      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/crisis`, { type });
       console.log(`Crisis recorded: ${type}`);
     } catch (e) {
       console.error("Failed to log crisis:", e);

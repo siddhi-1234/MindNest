@@ -36,7 +36,7 @@ const Dashboard = () => {
   const [startMessage, setStartMessage] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const API_URL = "http://localhost:5000/api/mood";
+  const API_URL = `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/mood`;
 
   const handleLogout = async () => {
     const auth = getAuth();

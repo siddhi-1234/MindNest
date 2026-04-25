@@ -87,7 +87,7 @@ const AdminSettings = () => {
         setCurrentUser(user);
         try {
           const res = await axios.get(
-            `http://localhost:5000/api/admin/${user.uid}`,
+            `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/${user.uid}`,
           );
           const fetchedData = {
             fullName: res.data.name,
@@ -165,7 +165,7 @@ const AdminSettings = () => {
         profileData.email !== originalData.email
       ) {
         // Update in MongoDB
-        await axios.put(`http://localhost:5000/api/admin/${currentUser.uid}`, {
+        await axios.put(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/${currentUser.uid}`, {
           name: profileData.fullName,
           email: profileData.email,
         });

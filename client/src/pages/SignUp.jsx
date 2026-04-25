@@ -37,7 +37,7 @@ export default function SignUp() {
         password,
       );
       const user = userCredential.user;
-      await axios.post("http://localhost:5000/api/students", {
+      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/students`, {
         uid: user.uid,
         name: name,
         email: email,

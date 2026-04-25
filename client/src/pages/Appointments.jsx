@@ -101,7 +101,7 @@ const Appointments = () => {
   useEffect(() => {
     const fetchCounselors = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/counselors");
+        const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
         if (res.data) {
           const validCounselors = res.data.filter(
             (c) => c.name && c.name.trim() !== "",
@@ -140,7 +140,7 @@ const Appointments = () => {
             ? selectedCounselor.schedule[formData.date]
             : STANDARD_TIME_SLOTS;
 
-        const res = await axios.get("http://localhost:5000/api/appointments");
+        const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
         const bookedTimes = res.data
           .filter(
             (appt) =>
@@ -164,7 +164,7 @@ const Appointments = () => {
 
   const fetchHistory = async (studentUid) => {
     try {
-      const res = await axios.get("http://localhost:5000/api/appointments");
+      const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
       const myAppointments = res.data.filter(
         (appt) => appt.studentUid === studentUid,
       );
@@ -212,7 +212,7 @@ const Appointments = () => {
       const selectedCounselor = counselors.find(
         (c) => c.id === formData.counselorId,
       );
-      await axios.post("http://localhost:5000/api/appointments", {
+      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`, {
         studentUid: currentUser.uid,
         studentName: currentUser.displayName || currentUser.email.split("@")[0],
         studentEmail: currentUser.email,

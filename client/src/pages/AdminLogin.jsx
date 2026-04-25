@@ -63,7 +63,7 @@ const AdminLogin = () => {
       const uid = userCredential.user.uid;
 
       // 2. Check Admin Status in MongoDB
-      const res = await axios.get(`http://localhost:5000/api/admin/${uid}`);
+      const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/${uid}`);
       const adminData = res.data;
 
       // Basic Role Check (Safety)

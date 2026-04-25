@@ -179,7 +179,7 @@ const SettingsPage = () => {
 
   const fetchSettings = async (user) => {
     try {
-      const response = await axios.get("http://localhost:5000/api/counselors");
+      const response = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
       const counselorData = response.data.find((c) => c.uid === user.uid);
 
       if (counselorData) {
@@ -215,7 +215,7 @@ const SettingsPage = () => {
     setLoading(true);
     try {
       await axios.put(
-        `http://localhost:5000/api/counselors/${currentUser.uid}`,
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors/${currentUser.uid}`,
         {
           name: profile.name,
           title: profile.role,
@@ -253,7 +253,7 @@ const SettingsPage = () => {
       await reauthenticateWithCredential(currentUser, credential);
       await updatePassword(currentUser, newPass);
 
-      await axios.post("http://localhost:5000/api/send-email", {
+      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email`, {
         email: currentUser.email,
         subject: "Security Alert: Password Changed",
         message: `Hello ${profile.name},\n\nYour MindNest account password was successfully changed just now.\n\nIf this wasn't you, please contact support immediately.`,
@@ -273,7 +273,7 @@ const SettingsPage = () => {
     setLoading(true);
     try {
       const ADMIN_EMAIL = "patilsiddhi2709@gmail.com";
-      await axios.post("http://localhost:5000/api/send-email", {
+      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email`, {
         email: ADMIN_EMAIL,
         subject: `🐛 Bug Report from ${profile.name}`,
         message: `BUG REPORT\n----------\nReporter: ${profile.name}\nRole: ${profile.role}\nUID: ${currentUser.uid}\nEmail: ${currentUser.email}\n\nISSUE:\n${issue}`,

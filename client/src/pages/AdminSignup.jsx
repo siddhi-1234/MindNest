@@ -42,7 +42,7 @@ const AdminSignup = () => {
 
       // 3. Save Admin Profile to MongoDB
       // Ensure your backend is running on port 5000
-      await axios.post("http://localhost:5000/api/admin/signup", {
+      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/signup`, {
         uid,
         name,
         email,
