@@ -2,13 +2,12 @@ services:
   - type: web
     name: mindnest-backend
     env: node
-    plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: PORT
-        value: 5000
+        value: "5000"
       - key: NODE_ENV
         value: production
       # REMINDER: Add MONGO_URI, EMAIL_USER, EMAIL_PASS, and DIALOGFLOW_PROJECT_ID via the Render dashboard.
