@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
+import Appointment from "../models/Appointment.js";
 const router = express.Router();
-const Appointment = require("../models/Appointment");
 
 // @route   POST /api/appointments
 // @desc    Book a new appointment
@@ -46,4 +46,4 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

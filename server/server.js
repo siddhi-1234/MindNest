@@ -102,7 +102,7 @@ app.use("/api/mood", moodRoutes);
 app.use("/api/Journals", journalRoutes);
 app.use("/api/counselors", counselorRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/appointments", require("./routes/appointmentRoutes"));
+app.use("/api/appointments", appointmentRoutes);
 app.use("/api/students", studentRoutes);
 
 app.get("/", (req, res) => {

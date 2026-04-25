@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"); //mongoose gives you functions to define schemas/models and to manage a connection
+import mongoose from "mongoose"; //mongoose gives you functions to define schemas/models and to manage a connection
 
 /* Defines an async arrow function named connectDB.
 Because it’s async, it can use await inside and returns a Promise */
@@ -15,4 +15,4 @@ const connectDB = async () => {
 };
 
 //Exports the connectDB function so other files can import
-module.exports = connectDB;
+export default connectDB;
