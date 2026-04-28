@@ -9,7 +9,9 @@ const connectDB = async () => {
     //returns a Promise — await waits for the connection to succeed (or throw).
     console.log("MongoDB Connected Successfully");
   } catch (err) {
-    console.error("MongoDB Connection Failed");
+    console.error(`MongoDB Connection Failed: ${err.message}`);
+    // Exiting prevents the server from starting properly, but if Render requires a running instance, maybe we shouldn't exit?
+    // Actually exiting is normal for fatal DB errors, but let's at least log the error so it's visible in Render.
     process.exit(1);
   }
 };

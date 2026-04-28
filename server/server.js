@@ -42,7 +42,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const PROJECT_ID = process.env.DIALOGFLOW_PROJECT_ID;
-const CREDENTIALS_PATH = path.join(__dirname, process.env.DIALOGFLOW_KEY_FILE);
+// Safely resolve the credentials path without crashing if env var is missing
+const CREDENTIALS_PATH = process.env.DIALOGFLOW_KEY_FILE 
+  ? path.resolve(__dirname, process.env.DIALOGFLOW_KEY_FILE)
+  : path.join(__dirname, "mindnest-key.json");
 
 // ================= NEW ROUTE: SAVE STUDENT ON SIGNUP =================
 // ✅ FEATURE 1: Endpoint called by frontend when a student registers
