@@ -14,7 +14,6 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -43,10 +42,7 @@ export default function SignUp() {
         name: name,
         email: email,
       });
-      setSuccess("Account created successfully! Redirecting...");
-      setTimeout(() => {
-        navigate("/Login");
-      }, 2000);
+      navigate("/Login");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,16 +70,6 @@ export default function SignUp() {
           <p className="text-red-400 text-[10px] mb-4 text-center uppercase tracking-wider">
             {error}
           </p>
-        )}
-
-        {success && (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-[11px] mb-5 p-3 rounded-xl text-center font-bold tracking-wide flex items-center justify-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            {success}
-          </div>
         )}
 
         <div className="space-y-5">
