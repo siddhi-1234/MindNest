@@ -29,7 +29,19 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
-app.use(cors());
+
+// ================= CORS CONFIGURATION =================
+const corsOptions = {
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://mind-nest-six.vercel.app",
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // ================= EMAIL CONFIGURATION =================
