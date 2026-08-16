@@ -6,38 +6,14 @@ import Crisis from "../models/Crisis.js";
 
 const router = express.Router();
 
-// ================= ADMIN SIGNUP =================
-router.post("/signup", async (req, res) => {
-  try {
-    const { name, email, uid } = req.body;
-
-    if (!name || !email || !uid) {
-      return res.status(400).json({ message: "All fields are required." });
-    }
-
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      return res.status(400).json({ message: "Admin account already exists." });
-    }
-
-    const newAdmin = new Admin({
-      uid,
-      name,
-      email,
-      status: "Pending",
-    });
-
-    await newAdmin.save();
-
-    res.status(201).json({
-      message: "Admin request submitted successfully. Pending approval.",
-      admin: newAdmin,
-    });
-  } catch (error) {
-    console.error("Signup Error:", error);
-    res.status(500).json({ message: "Server error during signup." });
-  }
-});
+// ================= ADMIN SIGNUP: DISABLED =================
+// Admin signup has been intentionally removed - there is exactly one
+// admin account, managed directly in the database. This route is kept
+// commented out (rather than just removed from the frontend) so that
+// even someone who discovers POST /api/admin/signup cannot create a new
+// admin account through the API.
+//
+// router.post("/signup", async (req, res) => { ... });
 
 // ================= ADMIN DASHBOARD STATS =================
 // ✅ FEATURE 1 & 2: Return real counts for students and crisis alerts
@@ -145,10 +121,36 @@ router.put("/:uid", async (req, res) => {
 });
 
 // ================= ADMIN LOGIN / CHECK STATUS =================
+// Accepts an optional ?email= query param used only to self-heal a stale
+// uid (see below). The uid in the URL still comes from a Firebase ID the
+// client already authenticated as, so this cannot be used to look up an
+// arbitrary admin by guessing an email.
 router.get("/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    const admin = await Admin.findOne({ uid });
+    const { email } = req.query;
+
+    let admin = await Admin.findOne({ uid });
+
+    // Self-heal: no document matches this Firebase uid. This happens when
+    // the Firebase Auth account for this email was deleted and recreated
+    // at some point (console cleanup, redoing a failed signup, etc.) -
+    // Firebase issues a brand new uid for the same email, but the old
+    // MongoDB document keeps the old uid, so lookups by uid stop matching
+    // even though the account "already exists" by email.
+    //
+    // The caller only reaches this route after a successful Firebase
+    // signInWithEmailAndPassword for this exact uid, so if we find an
+    // existing record under the same email, it's safe to re-link it to
+    // the current uid rather than telling the user their profile is
+    // missing (and then telling them it already exists on signup).
+    if (!admin && email) {
+      const staleAdmin = await Admin.findOne({ email });
+      if (staleAdmin) {
+        staleAdmin.uid = uid;
+        admin = await staleAdmin.save();
+      }
+    }
 
     if (!admin) {
       return res.status(404).json({ message: "Admin profile not found." });

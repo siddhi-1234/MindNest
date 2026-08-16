@@ -17,9 +17,17 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  signOut, // ✅ Imported signOut
+  signOut,
 } from "firebase/auth";
 import axios from "axios";
+
+// Single source of truth for the API base URL.
+// IMPORTANT: On Vercel, set REACT_APP_API_URL in the project's Environment
+// Variables (Settings > Environment Variables) to your deployed backend URL
+// (e.g. https://your-backend.onrender.com). If it's not set, the deployed
+// site will silently try to call localhost:5000, which cannot work in
+// production and will look exactly like "login/signup isn't working".
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const CounselorLogin = () => {
   const navigate = useNavigate();
@@ -39,10 +47,36 @@ const CounselorLogin = () => {
     setError("");
   };
 
+  // Converts a Firebase / Axios / generic error into a readable message.
+  const resolveErrorMessage = (err) => {
+    // Axios error with a response from the server (4xx/5xx)
+    if (err?.response) {
+      return (
+        err.response.data?.msg ||
+        err.response.data?.message ||
+        `Server error (${err.response.status}). Please try again.`
+      );
+    }
+    // Axios error with no response at all -> network/CORS/unreachable backend
+    if (err?.request) {
+      return "Could not reach the server. Please check your internet connection, or the server may be temporarily unavailable.";
+    }
+    // Firebase Auth errors carry a "code" like auth/wrong-password
+    if (err?.code) {
+      return (err.message || "Authentication error.").replace(
+        "Firebase: ",
+        "",
+      );
+    }
+    return err?.message || "Something went wrong. Please try again.";
+  };
+
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (!formData.email) {
-      setError("Please enter your email address first to reset your password.");
+      setError(
+        "Please enter your email address first to reset your password.",
+      );
       return;
     }
     setLoading(true);
@@ -51,7 +85,7 @@ const CounselorLogin = () => {
       await sendPasswordResetEmail(auth, formData.email);
       alert(`Password reset email sent to ${formData.email}.`);
     } catch (err) {
-      setError(err.message.replace("Firebase: ", ""));
+      setError(resolveErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -61,6 +95,13 @@ const CounselorLogin = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    // Tracks a Firebase user created during THIS submit, so we can roll it
+    // back if the follow-up MongoDB save fails. Without this, a failed
+    // signup permanently "consumes" the email in Firebase Auth while
+    // leaving no counselor profile in the DB - the account becomes stuck
+    // (can't sign up again with that email, can't log in either).
+    let createdFirebaseUser = null;
 
     try {
       if (isLogin) {
@@ -73,17 +114,21 @@ const CounselorLogin = () => {
         const user = userCredential.user;
 
         // Fetch Profile from DB to check status
-        const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
+        const res = await axios.get(`${API_URL}/api/counselors`);
         const counselor = res.data.find((c) => c.uid === user.uid);
 
         if (!counselor) {
           await signOut(auth);
-          setError("Counselor profile not found.");
+          setError(
+            "Counselor profile not found. If you just signed up and this " +
+              "keeps happening, try signing up again - your previous " +
+              "attempt may not have finished saving your profile.",
+          );
           setLoading(false);
           return;
         }
 
-        // ✅ SECURITY CHECK: Prevent login if not Verified
+        // SECURITY CHECK: Prevent login if not Verified
         if (counselor.status !== "Verified") {
           await signOut(auth);
           if (counselor.status === "Pending") {
@@ -105,32 +150,58 @@ const CounselorLogin = () => {
           formData.email,
           formData.password,
         );
-        const user = userCredential.user;
+        createdFirebaseUser = userCredential.user;
 
         const newCounselor = {
-          uid: user.uid,
+          uid: createdFirebaseUser.uid,
           name: formData.name,
           title: formData.title,
           email: formData.email,
-          image: `https://i.pravatar.cc/150?u=${user.uid}`,
+          image: `https://i.pravatar.cc/150?u=${createdFirebaseUser.uid}`,
           tags: ["New", "General Support"],
-          description: "Dedicated professional ready to help students succeed.",
+          description:
+            "Dedicated professional ready to help students succeed.",
           role: "counselor",
-          status: "Pending", // ✅ Set status to Pending
+          status: "Pending",
         };
 
-        await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`, newCounselor);
+        await axios.post(`${API_URL}/api/counselors`, newCounselor);
 
-        // ✅ Sign out immediately and alert user
+        // Success: sign out immediately and alert user
         await signOut(auth);
         alert(
           "Account created successfully! Please wait for admin verification before logging in.",
         );
         setIsLogin(true);
+        setFormData({ name: "", title: "", email: "", password: "" });
       }
     } catch (err) {
       console.error(err);
-      setError(err.message.replace("Firebase: ", ""));
+
+      // Rollback: if we created a Firebase Auth user in THIS attempt but
+      // the MongoDB profile save failed, delete the Firebase user so the
+      // email is free to try again instead of being permanently stuck.
+      if (createdFirebaseUser) {
+        try {
+          await createdFirebaseUser.delete();
+        } catch (rollbackErr) {
+          // If rollback itself fails (e.g. Firebase requires a recent
+          // login to delete), sign out at least, and warn clearly.
+          console.error("Rollback failed to delete orphaned user:", rollbackErr);
+          try {
+            await signOut(auth);
+          } catch (_) {}
+          setError(
+            "Signup could not be completed and we couldn't automatically " +
+              "clean up the partial account. Please contact support with " +
+              "this email address before trying again.",
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      setError(resolveErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FiMail, FiLock, FiShield } from "react-icons/fi";
 import { HiEye, HiEyeOff } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword, signInAnonymously } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 
 export default function Login() {
@@ -15,16 +15,8 @@ export default function Login() {
   const handleLogin = async () => {
     setError("");
     try {
+      //Calls Firebase Auth's method to authenticate the user
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleAnonymousLogin = async () => {
-    try {
-      await signInAnonymously(auth);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);

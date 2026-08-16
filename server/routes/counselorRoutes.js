@@ -9,32 +9,52 @@ router.post("/", async (req, res) => {
     const { uid, name, title, email, image, tags, description, license } =
       req.body;
 
-    // 1. Check if counselor exists by email
-    let counselor = await Counselor.findOne({ email });
+    // Basic validation - fail fast with a clear message instead of a
+    // confusing Mongoose ValidationError / 500 later.
+    if (!uid || !name || !title || !email) {
+      return res
+        .status(400)
+        .json({ msg: "Missing required fields: uid, name, title, email." });
+    }
+
+    // Check if counselor already exists by email OR uid (covers the case
+    // where a Firebase account exists but no profile was ever saved).
+    let counselor = await Counselor.findOne({ $or: [{ email }, { uid }] });
     if (counselor) {
       return res.status(400).json({ msg: "Counselor already exists" });
     }
 
-    // 2. Create new instance
     counselor = new Counselor({
       uid,
       name,
       title,
       email,
       image,
-      tags, // Array of specialties
+      tags,
       description,
-      license, // Added license field
+      license: license || undefined, // avoid saving "" into a sparse-unique field
     });
 
-    // 3. Save to DB
     await counselor.save();
     res
       .status(201)
       .json({ msg: "Counselor profile created successfully", counselor });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server Error");
+    console.error(err);
+
+    // Duplicate key race (e.g. email/uid/license collided at DB level)
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0] || "field";
+      return res
+        .status(400)
+        .json({ msg: `A counselor with this ${field} already exists.` });
+    }
+
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ msg: err.message });
+    }
+
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -44,8 +64,8 @@ router.get("/", async (req, res) => {
     const counselors = await Counselor.find().sort({ createdAt: -1 });
     res.json(counselors);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server Error");
+    console.error(err);
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 
@@ -53,24 +73,18 @@ router.get("/", async (req, res) => {
 router.put("/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    // We destructure possible fields. 'schedule' comes from Availability page, others from Settings page.
     const { name, title, license, description, tags, schedule } = req.body;
 
-    // 1. Unique License Check (Only if license is being updated)
+    // Unique License Check (Only if license is being updated)
     if (license) {
       const existingLicense = await Counselor.findOne({ license });
-      // If a counselor is found with this license, AND it's not the current user -> Error
       if (existingLicense && existingLicense.uid !== uid) {
-        return res
-          .status(400)
-          .json({
-            message: "License number already in use by another counselor.",
-          });
+        return res.status(400).json({
+          message: "License number already in use by another counselor.",
+        });
       }
     }
 
-    // 2. Build Update Object dynamically
-    // This allows us to update JUST the schedule OR JUST the profile without erasing the other
     const updateFields = {};
     if (name) updateFields.name = name;
     if (title) updateFields.title = title;
@@ -79,11 +93,10 @@ router.put("/:uid", async (req, res) => {
     if (tags) updateFields.tags = tags;
     if (schedule) updateFields.schedule = schedule;
 
-    // 3. Find and Update
     const counselor = await Counselor.findOneAndUpdate(
       { uid: uid },
       { $set: updateFields },
-      { new: true, upsert: true }, // upsert creates it if missing (safety net)
+      { new: true, upsert: true },
     );
 
     if (!counselor) {
@@ -93,7 +106,15 @@ router.put("/:uid", async (req, res) => {
     res.json(counselor);
   } catch (err) {
     console.error("Error updating counselor:", err);
-    res.status(500).send("Server Error");
+
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0] || "field";
+      return res
+        .status(400)
+        .json({ msg: `A counselor with this ${field} already exists.` });
+    }
+
+    res.status(500).json({ msg: "Server Error" });
   }
 });
 

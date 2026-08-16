@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Shield,
   User,
@@ -63,7 +63,12 @@ const AdminLogin = () => {
       const uid = userCredential.user.uid;
 
       // 2. Check Admin Status in MongoDB
-      const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/admin/${uid}`);
+      // The email is passed as a query param so the backend can self-heal
+      // a stale/mismatched uid for this account if needed (see adminRoutes.js).
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const res = await axios.get(
+        `${API_URL}/api/admin/${uid}?email=${encodeURIComponent(email)}`,
+      );
       const adminData = res.data;
 
       // Basic Role Check (Safety)
@@ -87,7 +92,16 @@ const AdminLogin = () => {
     } catch (err) {
       console.error("Login Error:", err);
       if (err.response && err.response.status === 404) {
-        setError("Admin profile not found in database.");
+        setError(
+          "Admin profile not found in database. If you're sure you've " +
+            "signed up before, try again - the account link is repaired " +
+            "automatically on a successful login.",
+        );
+      } else if (err.request && !err.response) {
+        // Firebase auth succeeded but the backend was unreachable
+        setError(
+          "Could not reach the server to verify your admin status. Please check your connection and try again.",
+        );
       } else if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
       } else {
@@ -218,19 +232,6 @@ const AdminLogin = () => {
               >
                 <Shield size={18} /> {loading ? "Verifying..." : "Secure Login"}
               </button>
-
-              {/* Signup Link */}
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-600">
-                  Don't have an account?{" "}
-                  <Link
-                    to="/admin/signup"
-                    className="font-bold text-blue-600 hover:text-blue-500 hover:underline transition-all"
-                  >
-                    Request Access
-                  </Link>
-                </p>
-              </div>
             </form>
 
             {/* Footer Notice */}
