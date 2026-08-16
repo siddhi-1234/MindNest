@@ -523,10 +523,42 @@ const StudentsPage = () => {
   }, [selectedStudent?.id]);
 
   const updateStatus = async (status) => {
-    /*...*/
-  }; // (Shortened)
+    if (!selectedStudent || !selectedStudent.appointmentId) return;
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      await axios.put(`${API_URL}/api/appointments/${selectedStudent.appointmentId}`, {
+        status,
+      });
+      alert(`Request has been ${status === "confirmed" ? "accepted" : "rejected"} successfully.`);
+      await fetchData();
+    } catch (err) {
+      console.error("Error updating status:", err);
+      alert("Failed to update status. Please try again.");
+    }
+  };
+
   const handleScheduleNext = async (date, time) => {
-    /*...*/
+    if (!selectedStudent || !currentUser) return;
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const payload = {
+        studentUid: selectedStudent.id,
+        studentName: selectedStudent.name,
+        studentEmail: selectedStudent.email,
+        counselorId: currentUser.uid,
+        counselorName: currentCounselorName,
+        date,
+        time,
+        status: "confirmed",
+        concern: selectedStudent.concern || "General Checkup",
+      };
+      await axios.post(`${API_URL}/api/appointments`, payload);
+      alert("New session scheduled successfully!");
+      await fetchData();
+    } catch (err) {
+      console.error("Error scheduling appointment:", err);
+      alert("Failed to schedule session. Please try again.");
+    }
   };
 
   const handleSendSingleFile = async (fileObj) => {

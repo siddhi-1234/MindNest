@@ -52,11 +52,10 @@ const SidebarItem = ({ icon: Icon, label, path, onClick }) => {
     <Link
       to={path}
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
-        isActive
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${isActive
           ? "bg-blue-50 text-blue-600 font-medium shadow-sm"
           : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-      }`}
+        }`}
     >
       <Icon size={20} />
       <span className="text-sm">{label}</span>
@@ -130,13 +129,12 @@ const CounselorModal = ({ counselor, onClose }) => {
                 Status
               </p>
               <span
-                className={`text-xs font-bold px-2 py-1 rounded inline-block ${
-                  counselor.status === "Verified"
+                className={`text-xs font-bold px-2 py-1 rounded inline-block ${counselor.status === "Verified"
                     ? "bg-green-100 text-green-700"
                     : counselor.status === "Rejected"
                       ? "bg-red-100 text-red-700"
                       : "bg-yellow-100 text-yellow-700"
-                }`}
+                  }`}
               >
                 {counselor.status}
               </span>
@@ -269,11 +267,10 @@ const AdminDashboard = () => {
 
       {/* ================= SIDEBAR ================= */}
       <aside
-        className={`fixed md:relative z-30 w-72 bg-white border-r border-gray-200 flex flex-col h-full transform transition-transform duration-300 ease-in-out ${
-          isMobileSidebarOpen
+        className={`fixed md:relative z-30 w-72 bg-white border-r border-gray-200 flex flex-col h-full transform transition-transform duration-300 ease-in-out ${isMobileSidebarOpen
             ? "translate-x-0"
             : "-translate-x-full md:translate-x-0"
-        }`}
+          }`}
       >
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -400,12 +397,7 @@ const AdminDashboard = () => {
                 <h3 className="font-bold text-lg text-gray-900">
                   Counselor Applications
                 </h3>
-                <Link
-                  to="/admin/verification"
-                  className="text-blue-600 text-sm font-bold hover:underline"
-                >
-                  View All
-                </Link>
+
               </div>
               <div className="overflow-x-auto flex-1">
                 {counselors.length === 0 ? (
@@ -448,13 +440,12 @@ const AdminDashboard = () => {
                           </td>
                           <td className="py-4">
                             <span
-                              className={`inline-block px-2.5 py-1 rounded text-xs font-bold ${
-                                app.status === "Verified"
+                              className={`inline-block px-2.5 py-1 rounded text-xs font-bold ${app.status === "Verified"
                                   ? "bg-green-100 text-green-700 border border-green-200"
                                   : app.status === "Rejected"
                                     ? "bg-red-100 text-red-700 border border-red-200"
                                     : "bg-yellow-50 text-yellow-700 border border-yellow-100"
-                              }`}
+                                }`}
                             >
                               {app.status || "Pending"}
                             </span>

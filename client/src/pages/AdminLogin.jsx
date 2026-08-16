@@ -111,7 +111,7 @@ const AdminLogin = () => {
       } else if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
       } else {
-        setError("Failed to login. Please try again.");
+        setError(err.message || "Failed to login. Please try again.");
       }
     } finally {
       setLoading(false);
