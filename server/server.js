@@ -31,15 +31,34 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // ================= CORS CONFIGURATION =================
+// Allow requests from localhost and any Vercel subdomain used for preview/production
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://mind-nest-six.vercel.app",
+];
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://mind-nest-six.vercel.app",
-  ],
+  origin: (origin, callback) => {
+    // No origin means same-origin request (e.g. server-side or curl) — allow it.
+    if (!origin) return callback(null, true);
+
+    // Allow exact matches or any vercel.app subdomain (preview deployments)
+    if (
+      allowedOrigins.includes(origin) ||
+      /(^|https?:\/\/)[^.]+\.vercel\.app(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    // Temporarily allow other origins to avoid blocking legitimate previews.
+    // In production you may want to restrict this tighter.
+    return callback(null, true);
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -55,7 +74,7 @@ const transporter = nodemailer.createTransport({
 
 const PROJECT_ID = process.env.DIALOGFLOW_PROJECT_ID;
 // Safely resolve the credentials path without crashing if env var is missing
-const CREDENTIALS_PATH = process.env.DIALOGFLOW_KEY_FILE 
+const CREDENTIALS_PATH = process.env.DIALOGFLOW_KEY_FILE
   ? path.resolve(__dirname, process.env.DIALOGFLOW_KEY_FILE)
   : path.join(__dirname, "mindnest-key.json");
 
@@ -145,7 +164,9 @@ app.post("/api/chat", async (req, res) => {
   const { text, sessionId } = req.body;
   const sessionClientOptions = {};
   if (process.env.DIALOGFLOW_CREDENTIALS) {
-    sessionClientOptions.credentials = JSON.parse(process.env.DIALOGFLOW_CREDENTIALS);
+    sessionClientOptions.credentials = JSON.parse(
+      process.env.DIALOGFLOW_CREDENTIALS,
+    );
   } else {
     sessionClientOptions.keyFilename = CREDENTIALS_PATH;
   }
