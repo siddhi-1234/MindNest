@@ -62,12 +62,18 @@ const AdminLogin = () => {
       );
       const uid = userCredential.user.uid;
 
+      // Use the email Firebase considers authoritative for this account
+      // (userCredential.user.email) rather than the raw typed input, so a
+      // stray capital letter or trailing space in the login form can't
+      // cause a mismatch against what's stored in MongoDB.
+      const accountEmail = userCredential.user.email;
+
       // 2. Check Admin Status in MongoDB
       // The email is passed as a query param so the backend can self-heal
       // a stale/mismatched uid for this account if needed (see adminRoutes.js).
       const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
       const res = await axios.get(
-        `${API_URL}/api/admin/${uid}?email=${encodeURIComponent(email)}`,
+        `${API_URL}/api/admin/${uid}?email=${encodeURIComponent(accountEmail)}`,
       );
       const adminData = res.data;
 
