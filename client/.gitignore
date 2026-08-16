@@ -2,7 +2,9 @@
 # Root
 # =========================
 .env
-.env.*
+.env.local
+.env.*.local
+!.env.production
 
 # =========================
 # Node
