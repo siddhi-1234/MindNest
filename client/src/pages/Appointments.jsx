@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 // ================= Standard Working Hours =================
+// Default available session time slots when a counselor has no custom schedule defined
 const STANDARD_TIME_SLOTS = [
   "09:00 AM",
   "10:00 AM",
@@ -29,31 +30,46 @@ const STANDARD_TIME_SLOTS = [
 ];
 
 const Appointments = () => {
+  // Hook to inspect the current route location
   const location = useLocation();
+  // Hook to programmatically change browser routes
   const navigate = useNavigate();
 
+  // DOM references for smooth scrolling to top and history sections
   const topRef = useRef(null);
   const historyRef = useRef(null);
 
+  // Multi-step booking wizard step tracker (1: Counselor, 2: Date & Time, 3: Confirmation)
   const [currentStep, setCurrentStep] = useState(1);
+  // Stored list of past and upcoming appointment records for the logged-in student
   const [history, setHistory] = useState([]);
+  // Loading flag while booking request is in flight
   const [isBooking, setIsBooking] = useState(false);
+  // Controls visibility of the booking confirmation success popup
   const [showSuccess, setShowSuccess] = useState(false);
-  const [open, setOpen] = useState(false); // Mobile menu state
+  // Mobile navigation drawer toggle
+  const [open, setOpen] = useState(false);
 
   // Data States
+  // List of active counselors fetched from the backend database
   const [counselors, setCounselors] = useState([]);
+  // Loading indicator for counselors list fetch
   const [loadingCounselors, setLoadingCounselors] = useState(true);
+  // Authenticated Firebase user object
   const [currentUser, setCurrentUser] = useState(null);
 
   // Availability States
+  // 14-day rolling dates generated for calendar selection
   const [generatedDates, setGeneratedDates] = useState([]);
+  // Filtered available time slots after removing existing bookings
   const [availableSlots, setAvailableSlots] = useState([]);
+  // Loading indicator while calculating available time slots
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Profile Dropdown State
+  // Profile dropdown menu visibility state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  // Form state tracking student's appointment booking choices
   const [formData, setFormData] = useState({
     counselorId: null,
     date: null,
@@ -64,16 +80,19 @@ const Appointments = () => {
     note: "",
   });
 
-  // --- 1. Auth & Init ---
+  // --- 1. Auth Listener & Rolling Date Generation ---
   useEffect(() => {
+    // Listen for Firebase authentication changes on component mount
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        // Save logged-in student user to state
         setCurrentUser(user);
+        // Load appointment history for this student
         fetchHistory(user.uid);
       }
     });
 
-    // Date Generation
+    // Generate next 14 consecutive calendar days starting from today
     const days = [];
     const today = new Date();
     for (let i = 0; i < 14; i++) {
@@ -89,23 +108,30 @@ const Appointments = () => {
         dayName,
         dateNum: d.getDate(),
         fullDate: `${year}-${month}-${day}`,
+        // Weekends (Saturday & Sunday) are disabled by default
         status:
           dayName === "SAT" || dayName === "SUN" ? "disabled" : "available",
       });
     }
+    // Populate generated dates state
     setGeneratedDates(days);
+
+    // Unsubscribe from auth listener when component unmounts
     return () => unsubscribe();
   }, []);
 
-  // --- 2. Fetch Counselors ---
+  // --- 2. Fetch Counselors List ---
   useEffect(() => {
+    // Async function to fetch counselors from the backend API
     const fetchCounselors = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
         if (res.data) {
+          // Filter out entries missing valid counselor names
           const validCounselors = res.data.filter(
             (c) => c.name && c.name.trim() !== "",
           );
+          // Format and save counselors to state
           setCounselors(
             validCounselors.map((c) => ({
               id: c.uid,
@@ -117,7 +143,7 @@ const Appointments = () => {
           );
         }
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching counselors:", err);
       } finally {
         setLoadingCounselors(false);
       }
@@ -125,22 +151,28 @@ const Appointments = () => {
     fetchCounselors();
   }, []);
 
-  // --- 3. Availability Logic ---
+  // --- 3. Compute Availability & Filter Out Booked Slots ---
   useEffect(() => {
+    // Query booked appointments to calculate free time slots for selected counselor & date
     const fetchAvailability = async () => {
+      // Exit if counselor or date is not yet selected
       if (!formData.counselorId || !formData.date) return;
       setLoadingSlots(true);
       try {
+        // Find selected counselor to check for custom scheduled hours
         const selectedCounselor = counselors.find(
           (c) => c.id === formData.counselorId,
         );
+        // Use counselor's custom hours for this date if present, otherwise fallback to standard slots
         let baseSlots =
           selectedCounselor?.schedule &&
           Array.isArray(selectedCounselor.schedule[formData.date])
             ? selectedCounselor.schedule[formData.date]
             : STANDARD_TIME_SLOTS;
 
+        // Fetch all appointments from backend
         const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
+        // Find all already booked times for the selected counselor on this date
         const bookedTimes = res.data
           .filter(
             (appt) =>
@@ -150,10 +182,12 @@ const Appointments = () => {
           )
           .map((appt) => appt.time);
 
+        // Filter out any time slots that have already been booked
         setAvailableSlots(
           baseSlots.filter((slot) => !bookedTimes.includes(slot)),
         );
       } catch (err) {
+        // Fallback to standard time slots if check fails
         setAvailableSlots(STANDARD_TIME_SLOTS);
       } finally {
         setLoadingSlots(false);
@@ -162,12 +196,16 @@ const Appointments = () => {
     fetchAvailability();
   }, [formData.counselorId, formData.date, counselors]);
 
+  // Fetches appointment records for the logged-in student
   const fetchHistory = async (studentUid) => {
     try {
+      // Request appointments from backend
       const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
+      // Filter appointments belonging specifically to the logged-in student
       const myAppointments = res.data.filter(
         (appt) => appt.studentUid === studentUid,
       );
+      // Map and sort appointments in reverse chronological order
       setHistory(
         myAppointments.reverse().map((appt) => ({
           id: appt._id,
@@ -179,24 +217,29 @@ const Appointments = () => {
         })),
       );
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching appointment history:", err);
     }
   };
 
+  // Sign out student user and redirect to homepage
   const handleLogout = async () => {
     try {
       await signOut(auth);
       navigate("/");
     } catch (error) {
-      console.error(error);
+      console.error("Logout error:", error);
     }
   };
 
+  // Helper function to update a specific property in formData state
   const updateForm = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
 
+  // Handles date click from the 14-day calendar grid
   const handleDateSelect = (dateObj) => {
+    // Prevent selection if date is disabled (e.g. weekends)
     if (dateObj.status === "disabled") return;
+    // Set selected date and reset any previously chosen time slot
     setFormData((prev) => ({
       ...prev,
       date: dateObj.fullDate,
@@ -205,13 +248,17 @@ const Appointments = () => {
     }));
   };
 
+  // Handles appointment creation and submission
   const handleConfirmBooking = async () => {
+    // Ensure student is logged in before booking
     if (!currentUser) return alert("Please log in.");
     setIsBooking(true);
     try {
+      // Find the chosen counselor record
       const selectedCounselor = counselors.find(
         (c) => c.id === formData.counselorId,
       );
+      // Send POST request to create new appointment in database
       await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`, {
         studentUid: currentUser.uid,
         studentName: currentUser.displayName || currentUser.email.split("@")[0],
@@ -226,8 +273,11 @@ const Appointments = () => {
         status: "pending",
       });
       setIsBooking(false);
+      // Display success modal overlay
       setShowSuccess(true);
+      // Refresh student's appointment history list
       fetchHistory(currentUser.uid);
+      // Reset form state and scroll to history after 2.5 seconds
       setTimeout(() => {
         setShowSuccess(false);
         setCurrentStep(1);
@@ -248,8 +298,10 @@ const Appointments = () => {
   };
 
   return (
+    // Outer page container with dark theme background
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans relative overflow-x-hidden">
       {/* 1. AURORA BACKGROUND */}
+      {/* Background aurora ambient glow effects */}
       <div className="mesh-bg">
         <div className="aurora-orb orb-1"></div>
         <div className="aurora-orb orb-2"></div>
@@ -257,7 +309,9 @@ const Appointments = () => {
       </div>
 
       {/* 2. ENHANCED NAVBAR */}
+      {/* Fixed top navigation bar with blur effect */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-[#0F172A]/80 backdrop-blur-lg px-6 py-4 border-b border-white/5 flex items-center justify-between shadow-md">
+        {/* Brand logo & application title */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -269,6 +323,7 @@ const Appointments = () => {
           </h1>
         </div>
 
+        {/* Navigation links for desktop screens */}
         <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <li>
             <Link to="/dashboard" className="hover:text-white transition">
@@ -297,7 +352,7 @@ const Appointments = () => {
           </li>
         </ul>
 
-        {/* Profile Dropdown */}
+        {/* Student Profile Dropdown (Desktop) */}
         <div className="hidden md:block relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -305,6 +360,7 @@ const Appointments = () => {
           >
             <User className="text-white" size={24} />
           </button>
+          {/* Dropdown panel when profile icon is clicked */}
           {isProfileOpen && (
             <div className="absolute right-0 top-12 w-56 bg-[#1E293B] border border-gray-700 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-2">
               <div className="px-4 py-3 border-b border-gray-700">
@@ -328,6 +384,7 @@ const Appointments = () => {
                 </Link>
               </div>
               <div className="border-t border-gray-700 mt-1 pt-1">
+                {/* Sign out action button */}
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition text-left"
@@ -339,7 +396,7 @@ const Appointments = () => {
           )}
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile menu toggle button */}
         <button
           className="md:hidden text-gray-300"
           onClick={() => setOpen(!open)}
@@ -353,6 +410,7 @@ const Appointments = () => {
         ref={topRef}
         className="max-w-7xl mx-auto px-4 md:px-6 pt-32 pb-32 relative z-10"
       >
+        {/* Booking Confirmed success modal overlay */}
         {showSuccess && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
             <div className="glass-card p-8 rounded-3xl border border-[#6bdfb2] shadow-2xl text-center w-full max-w-sm">
@@ -364,6 +422,7 @@ const Appointments = () => {
           </div>
         )}
 
+        {/* Page Header */}
         <header className="mb-10 welcome-text">
           <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-3 tracking-tight glow-pulse flex items-center gap-4">
             <Calendar className="w-10 h-10 text-[#6bdfb2]" /> Book Appointment
@@ -373,8 +432,9 @@ const Appointments = () => {
           </p>
         </header>
 
+        {/* Booking Wizard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* STEP 1: COUNSELORS */}
+          {/* STEP 1: CHOOSE COUNSELOR */}
           <div className="lg:col-span-4 space-y-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
@@ -383,15 +443,18 @@ const Appointments = () => {
               <h2 className="text-xl font-bold text-white">Choose Counselor</h2>
             </div>
             <div className="space-y-4">
+              {/* Spinner while loading counselors */}
               {loadingCounselors ? (
                 <div className="text-center py-4">
                   <Loader2 className="animate-spin inline mr-2" /> Loading...
                 </div>
               ) : (
+                /* Counselor selection card list */
                 counselors.map((c) => (
                   <div
                     key={c.id}
                     onClick={() => {
+                      // Select counselor and advance to step 2 (availability)
                       updateForm("counselorId", c.id);
                       setCurrentStep(2);
                     }}
@@ -420,6 +483,7 @@ const Appointments = () => {
           <div
             className={`lg:col-span-8 space-y-8 transition-opacity duration-500 ${currentStep < 2 ? "opacity-40 pointer-events-none" : "opacity-100"}`}
           >
+            {/* Step 2: Date and Time Slot Picker Card */}
             <div className="glass-card p-8 rounded-[2.5rem] shadow-2xl">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
@@ -429,6 +493,7 @@ const Appointments = () => {
                   Select Availability
                 </h2>
               </div>
+              {/* 14-day Calendar Grid */}
               <div className="grid grid-cols-7 gap-3 mb-10">
                 {generatedDates.map((item, i) => (
                   <div
@@ -444,19 +509,23 @@ const Appointments = () => {
                 ))}
               </div>
 
+              {/* Time Slots Section */}
               <h3 className="font-bold text-white mb-5 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-blue-400" /> Available Slots
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {/* Checking slots spinner */}
                 {loadingSlots ? (
                   <div className="col-span-full text-center py-4 text-gray-400">
                     <Loader2 className="animate-spin inline mr-2" /> Checking...
                   </div>
                 ) : availableSlots.length > 0 ? (
+                  /* Render list of selectable time buttons */
                   availableSlots.map((time, i) => (
                     <button
                       key={i}
                       onClick={() => {
+                        // Pick time slot and proceed to step 3 (confirmation)
                         updateForm("time", time);
                         setCurrentStep(3);
                       }}
@@ -473,12 +542,13 @@ const Appointments = () => {
               </div>
             </div>
 
-            {/* CONFIRMATION */}
+            {/* STEP 3: SESSION OPTIONS & CONFIRMATION */}
             <div
               className={`transition-all duration-500 ${currentStep < 3 ? "opacity-40 pointer-events-none" : "opacity-100"}`}
             >
               <div className="glass-card p-8 rounded-[2.5rem] border border-white/5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                  {/* Session Type Select Dropdown */}
                   <div>
                     <label className="text-[10px] uppercase font-black text-gray-500 tracking-widest ml-1 mb-2 block">
                       Session Type
@@ -493,6 +563,7 @@ const Appointments = () => {
                       <option>Audio Call</option>
                     </select>
                   </div>
+                  {/* Primary Concern Select Dropdown */}
                   <div>
                     <label className="text-[10px] uppercase font-black text-gray-500 tracking-widest ml-1 mb-2 block">
                       Concern
@@ -507,13 +578,16 @@ const Appointments = () => {
                     </select>
                   </div>
                 </div>
+                {/* Action buttons (Cancel & Confirm Booking) */}
                 <div className="flex justify-end gap-4">
+                  {/* Reset wizard back to Step 1 */}
                   <button
                     onClick={() => setCurrentStep(1)}
                     className="px-8 py-4 rounded-2xl text-gray-400 hover:text-white font-bold transition"
                   >
                     Cancel
                   </button>
+                  {/* Submit booking button */}
                   <button
                     onClick={handleConfirmBooking}
                     disabled={isBooking}
@@ -532,20 +606,23 @@ const Appointments = () => {
           </div>
         </div>
 
-        {/* HISTORY SECTION */}
+        {/* APPOINTMENT HISTORY SECTION */}
         <section
           ref={historyRef}
           className="mt-20 pt-10 border-t border-white/5"
         >
+          {/* Section heading */}
           <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-4">
             <RotateCcw className="text-[#6bdfb2]" /> Appointment History
           </h2>
+          {/* Appointment history cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {history.map((item) => (
               <div
                 key={item.id}
                 className="glass-card p-6 rounded-[2rem] flex justify-between items-center group"
               >
+                {/* Counselor image, name, and appointment date/time */}
                 <div className="flex items-center gap-5">
                   <img
                     src={item.img}
@@ -560,10 +637,12 @@ const Appointments = () => {
                     </p>
                   </div>
                 </div>
+                {/* Appointment status badge and rebook button */}
                 <div className="flex items-center gap-4">
                   <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-green-500/10 text-green-400 border border-green-500/20">
                     {item.status}
                   </span>
+                  {/* Rebook button selecting counselor and scrolling to wizard */}
                   <button
                     onClick={() => {
                       updateForm("counselorId", item.counselorId);

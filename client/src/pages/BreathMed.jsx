@@ -11,37 +11,50 @@ import {
 } from "lucide-react";
 
 const Resources = () => {
+  // State to toggle mobile navigation menu drawer open/closed
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // === BREATHING EXERCISE STATE ===
+  // Tracks whether the interactive breathing animation is currently active
   const [isBreathing, setIsBreathing] = useState(false);
+  // Holds current breathing guidance prompt text ("Ready?", "Inhale...", "Hold...", "Exhale...")
   const [breathText, setBreathText] = useState("Ready?");
 
   // === VIDEO & ARTICLE STATE ===
+  // Stores the ID of the YouTube video currently playing in an embedded iframe
   const [playingVideo, setPlayingVideo] = useState(null);
+  // Stores the selected article object displayed in the detail modal (null when closed)
   const [activeArticle, setActiveArticle] = useState(null);
 
-  // === BREATHING LOGIC ===
+  // === BREATHING PACER CYCLE LOGIC ===
   useEffect(() => {
     let interval;
+    // When breathing exercise is started
     if (isBreathing) {
+      // Start initial cycle with Inhale prompt
       setBreathText("Inhale...");
-      // Simple 4-4-4 Box Breathing simulation for UI text
+      // 12-second box breathing cycle simulation: Inhale (4s) -> Hold (4s) -> Exhale (4s)
       const cycle = () => {
         setTimeout(() => setBreathText("Hold..."), 4000);
         setTimeout(() => setBreathText("Exhale..."), 8000);
         setTimeout(() => setBreathText("Inhale..."), 12000);
       };
+      // Run first cycle immediately
       cycle();
+      // Repeat the 12-second breathing cycle continuously
       interval = setInterval(cycle, 12000);
     } else {
+      // Reset prompt text to initial state when exercise stops
       setBreathText("Ready?");
+      // Clear recurring breathing cycle timer
       clearInterval(interval);
     }
+    // Cleanup: clear active interval on unmount or when exercise toggles
     return () => clearInterval(interval);
   }, [isBreathing]);
 
   // === 1. BREATHING VIDEOS DATA ===
+  // Curated list of guided breathing exercise video resources
   const breathingVideos = [
     {
       id: 1,
@@ -94,6 +107,7 @@ const Resources = () => {
   ];
 
   // === 2. MEDITATION VIDEOS DATA ===
+  // Curated collection of guided mindfulness and relaxation meditation tracks
   const meditationVideos = [
     {
       id: 7,
@@ -148,6 +162,8 @@ const Resources = () => {
     },
   ];
 
+  // === 3. EDUCATIONAL ARTICLES DATA ===
+  // Written wellness guides detailing breathing science, techniques, and body scans
   const articles = [
     {
       id: 1,
@@ -225,17 +241,21 @@ const Resources = () => {
   ];
 
   return (
+    // Outer page wrapper with dark blue theme
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans relative">
       {/* ================= ARTICLE MODAL ================= */}
+      {/* Full article reader modal (rendered only when an article is selected) */}
       {activeArticle && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#1E293B] w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-700">
+            {/* Close modal button */}
             <button
               onClick={() => setActiveArticle(null)}
               className="absolute top-4 right-4 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition"
             >
               <X className="w-5 h-5" />
             </button>
+            {/* Modal header image with title overlay */}
             <div className="h-64 shrink-0 relative">
               <img
                 src={activeArticle.image}
@@ -244,14 +264,17 @@ const Resources = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1E293B] to-transparent"></div>
               <div className="absolute bottom-4 left-6 right-6">
+                {/* Category tag */}
                 <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded mb-2 inline-block">
                   {activeArticle.tag}
                 </span>
+                {/* Article title */}
                 <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                   {activeArticle.title}
                 </h2>
               </div>
             </div>
+            {/* Modal scrollable article text content */}
             <div className="p-6 md:p-8 overflow-y-auto text-gray-300 leading-relaxed text-lg">
               <div
                 dangerouslySetInnerHTML={{ __html: activeArticle.content }}
@@ -262,7 +285,9 @@ const Resources = () => {
       )}
 
       {/* ================= NAVBAR ================= */}
+      {/* Sticky top navigation bar */}
       <nav className="flex items-center justify-between px-4 md:px-8 py-4 bg-[#0F172A] border-b border-gray-800 sticky top-0 z-50">
+        {/* Brand logo and application title */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -273,6 +298,7 @@ const Resources = () => {
             MindNest
           </h1>
         </div>
+        {/* Desktop navigation links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a href="/Dashboard" className="hover:text-white transition">
             Dashboard
@@ -287,6 +313,7 @@ const Resources = () => {
             Counselling
           </a>
         </div>
+        {/* Mobile menu hamburger toggle button */}
         <div className="flex items-center gap-4">
           <button
             className="md:hidden text-gray-300"
@@ -299,6 +326,7 @@ const Resources = () => {
             )}
           </button>
         </div>
+        {/* Mobile drawer navigation links */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
             <a
@@ -331,8 +359,10 @@ const Resources = () => {
 
       {/* ================= HERO SECTION ================= */}
       <div className="relative bg-gradient-to-b from-[#1e293b] to-[#0F172A] py-12 md:py-20 px-4 md:px-6 text-center overflow-hidden">
+        {/* Radial ambient glow effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
+        {/* Hero title & introductory subtitle */}
         <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 relative z-10 glow-pulse">
           Wellness Library
         </h1>
@@ -340,7 +370,7 @@ const Resources = () => {
           Curated resources to help you breathe, focus, and find your center.
         </p>
 
-        {/* Quote Card */}
+        {/* Daily Wisdom motivational quote card */}
         <div className="max-w-2xl mx-auto relative group">
           <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl transition-all duration-500 hover:bg-white/10">
             <Quote
@@ -368,14 +398,15 @@ const Resources = () => {
       </div>
 
       {/* ================= BREATHE & CENTER SECTION ================= */}
+      {/* Interactive breathing pacer tool with visual expanding/contracting rings */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 mb-16">
         <div className="relative bg-[#1E293B] rounded-3xl p-8 md:p-12 overflow-hidden border border-gray-700/50 shadow-2xl">
-          {/* Background Decoration */}
+          {/* Background blurred color orbs */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -z-0"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl -z-0"></div>
 
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-            {/* Left: Text & CTA */}
+            {/* Left: Information and Start / Stop control button */}
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider mb-4 border border-blue-500/20">
                 <Wind className="w-4 h-4" /> Featured Tool
@@ -387,6 +418,7 @@ const Resources = () => {
                 Feeling overwhelmed? Take a moment to pause. Follow our guided
                 breathing pacer to reduce cortisol levels instantly.
               </p>
+              {/* Start / Stop toggle button */}
               <button
                 onClick={() => setIsBreathing(!isBreathing)}
                 className={`px-8 py-4 rounded-full font-bold text-lg transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-3 mx-auto md:mx-0 ${
@@ -407,21 +439,22 @@ const Resources = () => {
               </button>
             </div>
 
-            {/* Right: The Animation Circle */}
+            {/* Right: The Animated Breathing Circle */}
             <div className="flex-1 flex justify-center items-center">
-              {/* Outer Rings */}
+              {/* Outer pulsing ring */}
               <div
                 className={`relative flex items-center justify-center w-64 h-64 md:w-80 md:h-80 rounded-full border-4 border-blue-500/20 transition-all duration-[4000ms] ease-in-out ${
                   isBreathing ? "scale-110" : "scale-100"
                 }`}
               >
+                {/* Secondary halo expanding ring */}
                 <div
                   className={`absolute inset-0 rounded-full border-2 border-blue-500/10 transition-all duration-[4000ms] ease-in-out ${
                     isBreathing ? "scale-150 opacity-50" : "scale-100 opacity-0"
                   }`}
                 ></div>
 
-                {/* The Core Circle */}
+                {/* Core gradient circle displaying real-time breath status text */}
                 <div
                   className={`w-48 h-48 md:w-60 md:h-60 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 shadow-[0_0_50px_rgba(59,130,246,0.4)] flex items-center justify-center transition-all duration-[4000ms] ease-in-out ${
                     isBreathing ? "scale-110" : "scale-100"
@@ -441,17 +474,21 @@ const Resources = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-6 pb-12 space-y-16">
         {/* === SECTION 1: BREATHING EXERCISES === */}
         <section>
+          {/* Section heading */}
           <div className="flex justify-between items-end mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-white">
               Breathing Exercises
             </h2>
           </div>
 
+          {/* Video grid for breathing tutorials */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
             {breathingVideos.map((video) => (
               <div key={video.id} className="group cursor-pointer">
+                {/* Video container: switches to embedded YouTube iframe when playing */}
                 <div className="relative rounded-xl overflow-hidden aspect-video mb-4 border border-gray-700 shadow-lg bg-black">
                   {playingVideo === video.id ? (
+                    /* Embedded YouTube Player */
                     <iframe
                       width="100%"
                       height="100%"
@@ -462,6 +499,7 @@ const Resources = () => {
                       allowFullScreen
                     ></iframe>
                   ) : (
+                    /* Video Thumbnail preview with click-to-play */
                     <div
                       onClick={() => setPlayingVideo(video.id)}
                       className="w-full h-full relative"
@@ -471,17 +509,20 @@ const Resources = () => {
                         alt={video.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80 group-hover:opacity-100"
                       />
+                      {/* Play overlay button icon */}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition">
                         <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:scale-110 transition duration-300">
                           <Play className="w-6 h-6 text-white fill-current ml-1" />
                         </div>
                       </div>
+                      {/* Video duration badge */}
                       <span className="absolute bottom-2 right-2 bg-black/70 text-xs px-2 py-1 rounded text-white font-mono">
                         {video.duration}
                       </span>
                     </div>
                   )}
                 </div>
+                {/* Video title and description */}
                 <h3 className="font-bold text-xl text-gray-100 group-hover:text-blue-400 transition mb-1">
                   {video.title}
                 </h3>
@@ -493,17 +534,21 @@ const Resources = () => {
 
         {/* === SECTION 2: GUIDED MEDITATIONS === */}
         <section>
+          {/* Section heading */}
           <div className="flex justify-between items-end mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-white">
               Guided Meditations
             </h2>
           </div>
 
+          {/* Video grid for guided meditation sessions */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
             {meditationVideos.map((video) => (
               <div key={video.id} className="group cursor-pointer">
+                {/* Video container: switches to embedded YouTube iframe when playing */}
                 <div className="relative rounded-xl overflow-hidden aspect-video mb-4 border border-gray-700 shadow-lg bg-black">
                   {playingVideo === video.id ? (
+                    /* Embedded YouTube Player */
                     <iframe
                       width="100%"
                       height="100%"
@@ -514,6 +559,7 @@ const Resources = () => {
                       allowFullScreen
                     ></iframe>
                   ) : (
+                    /* Video Thumbnail preview with click-to-play */
                     <div
                       onClick={() => setPlayingVideo(video.id)}
                       className="w-full h-full relative"
@@ -523,17 +569,20 @@ const Resources = () => {
                         alt={video.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80 group-hover:opacity-100"
                       />
+                      {/* Play overlay button icon */}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition">
                         <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:scale-110 transition duration-300">
                           <Play className="w-6 h-6 text-white fill-current ml-1" />
                         </div>
                       </div>
+                      {/* Video duration badge */}
                       <span className="absolute bottom-2 right-2 bg-black/70 text-xs px-2 py-1 rounded text-white font-mono">
                         {video.duration}
                       </span>
                     </div>
                   )}
                 </div>
+                {/* Video title and description */}
                 <h3 className="font-bold text-xl text-gray-100 group-hover:text-blue-400 transition mb-1">
                   {video.title}
                 </h3>
@@ -543,11 +592,13 @@ const Resources = () => {
           </div>
         </section>
 
-        {/* Reading Section (Kept as is) */}
+        {/* === SECTION 3: EDUCATIONAL ARTICLES === */}
         <section>
+          {/* Section heading */}
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
             Reads for Calmness
           </h2>
+          {/* Article preview cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {articles.map((article) => (
               <div
@@ -555,6 +606,7 @@ const Resources = () => {
                 onClick={() => setActiveArticle(article)}
                 className="bg-[#1E293B] rounded-2xl p-6 flex flex-col sm:flex-row gap-6 border border-gray-700 hover:border-blue-500/50 transition group cursor-pointer"
               >
+                {/* Article thumbnail image */}
                 <div className="w-full sm:w-40 h-40 shrink-0 rounded-xl overflow-hidden">
                   <img
                     src={article.image}
@@ -562,8 +614,10 @@ const Resources = () => {
                     className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                   />
                 </div>
+                {/* Article details and preview */}
                 <div className="flex flex-col justify-between py-1">
                   <div>
+                    {/* Category tag & reading duration badge */}
                     <div className="flex items-center gap-3 text-xs mb-3">
                       <span className="bg-blue-900/50 text-blue-300 px-2 py-1 rounded font-bold tracking-wider">
                         {article.tag}
@@ -572,6 +626,7 @@ const Resources = () => {
                         <Clock className="w-3 h-3" /> {article.readTime}
                       </span>
                     </div>
+                    {/* Article title and short description */}
                     <h3 className="text-lg font-bold text-gray-100 mb-2 group-hover:text-blue-400 transition leading-snug">
                       {article.title}
                     </h3>
@@ -579,6 +634,7 @@ const Resources = () => {
                       {article.desc}
                     </p>
                   </div>
+                  {/* Read Article link indicator */}
                   <div className="mt-4 flex items-center text-blue-400 text-sm font-medium gap-1 group-hover:gap-2 transition-all">
                     Read Article <ArrowRight className="w-4 h-4" />
                   </div>
@@ -589,6 +645,7 @@ const Resources = () => {
         </section>
       </div>
 
+      {/* Page footer */}
       <footer className="border-t border-gray-800 py-8 text-center text-gray-500 text-xs md:text-sm px-4">
         <p>&copy; 2023 MindNest. All rights reserved.</p>
       </footer>
