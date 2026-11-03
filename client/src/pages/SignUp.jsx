@@ -7,55 +7,81 @@ import { auth } from "../firebase";
 import axios from "axios";
 
 export default function SignUp() {
+  // === STATE MANAGEMENT ===
+  // Password visibility toggle states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Controlled form input states for student registration
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Error feedback state displayed on validation or API failure
   const [error, setError] = useState("");
+  // Submission loading indicator disabling the button during registration
   const [loading, setLoading] = useState(false);
+
+  // React Router hook for programmatic redirection
   const navigate = useNavigate();
 
+  // === REGISTRATION SUBMISSION HANDLER ===
   const handleSignUp = async () => {
+    // Clear any previous error message and enable loading state
     setError("");
     setLoading(true);
+
+    // Validate that all required fields are filled out
     if (!name || !email || !password) {
       setError("Please fill in all fields.");
       setLoading(false);
       return;
     }
+
+    // Validate that password and confirmation password match
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
+
     try {
+      // 1. Create student account in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password,
       );
       const user = userCredential.user;
+
+      // 2. Persist student profile record to backend MongoDB database
       await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/students`, {
         uid: user.uid,
         name: name,
         email: email,
       });
+
+      // 3. Redirect to login page on successful account creation
       navigate("/Login");
     } catch (err) {
+      // Display error message from Firebase or backend API
       setError(err.message);
     } finally {
+      // Reset loading flag regardless of outcome
       setLoading(false);
     }
   };
 
   return (
+    // Fullscreen themed background container
     <div
       className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-6 md:p-10"
       style={{ backgroundImage: "url('/screen.png')" }}
     >
+      {/* Frosted glass registration card */}
       <div className="w-full max-w-[460px] bg-[#1e2532]/85 backdrop-blur-md rounded-[40px] p-8 md:p-12 border border-white/5 shadow-2xl my-6">
+        {/* Welcome Branding & Header */}
         <div className="flex flex-col items-center mb-8 text-center">
           <h1 className="text-3xl font-semibold text-white mb-2 tracking-tight">
             Find your calm.
@@ -66,13 +92,16 @@ export default function SignUp() {
           </p>
         </div>
 
+        {/* Error message banner */}
         {error && (
           <p className="text-red-400 text-[10px] mb-4 text-center uppercase tracking-wider">
             {error}
           </p>
         )}
 
+        {/* Input Form Fields */}
         <div className="space-y-5">
+          {/* Full Name Input Field */}
           <div>
             <label className="text-[10px] uppercase tracking-[0.15em] text-gray-400 ml-1 mb-2 block font-bold">
               Full Name
@@ -89,6 +118,7 @@ export default function SignUp() {
             </div>
           </div>
 
+          {/* University Email Input Field */}
           <div>
             <label className="text-[10px] uppercase tracking-[0.15em] text-gray-400 ml-1 mb-2 block font-bold">
               University Email
@@ -105,7 +135,9 @@ export default function SignUp() {
             </div>
           </div>
 
+          {/* Password & Confirm Password Input Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Password Field */}
             <div>
               <label className="text-[10px] uppercase tracking-[0.15em] text-gray-400 ml-1 mb-2 block font-bold">
                 Password
@@ -120,6 +152,7 @@ export default function SignUp() {
                 />
               </div>
             </div>
+            {/* Confirm Password Field */}
             <div>
               <label className="text-[10px] uppercase tracking-[0.15em] text-gray-400 ml-1 mb-2 block font-bold">
                 Confirm
@@ -137,6 +170,7 @@ export default function SignUp() {
           </div>
         </div>
 
+        {/* Primary Submit Button */}
         <button
           onClick={handleSignUp}
           disabled={loading}
@@ -146,6 +180,7 @@ export default function SignUp() {
           <HiArrowRight size={18} />
         </button>
 
+        {/* Link to Student Login Page */}
         <p className="text-center text-xs text-gray-400">
           Already have an account?{" "}
           <span
@@ -156,6 +191,7 @@ export default function SignUp() {
           </span>
         </p>
 
+        {/* External Portal Navigation Links */}
         <div className="mt-8 pt-6 border-t border-white/5 text-center">
           <Link
             to="/counselor/login"
@@ -175,7 +211,7 @@ export default function SignUp() {
         </div>
       </div>
 
-      {/* Footer Security Icons */}
+      {/* Footer Security Badges */}
       <div className="mt-4 flex gap-8 text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold">
         <div className="flex items-center gap-2">
           <FiShield className="text-xs" /> Encrypted

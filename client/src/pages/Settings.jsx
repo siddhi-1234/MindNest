@@ -26,73 +26,93 @@ import {
 
 import Chatbot from "../pages/Chatbot";
 
+/**
+ * Settings Component
+ * Allows students to update profile details (name, email), toggle notification preferences,
+ * trigger password reset emails, sign out, or permanently delete their account.
+ */
 const Settings = () => {
-  // === STATE ===
+  // === STATE MANAGEMENT ===
+  // Stores the active Firebase user object
   const [user, setUser] = useState(null);
+  // Controls full-screen initial loading state while verifying Firebase auth
   const [loading, setLoading] = useState(true);
-  const [sendingReset, setSendingReset] = useState(false); // NEW: Track reset email status
+  // Indicates if a password reset email request is currently processing (shows spinner)
+  const [sendingReset, setSendingReset] = useState(false);
+  // Controls responsive mobile navigation drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Controls desktop profile avatar dropdown menu visibility
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Form States
+  // Editable user profile form fields
   const [formData, setFormData] = useState({
     displayName: "",
     email: "",
   });
 
-  // Toggle States
+  // User notification preference switches
   const [notifications, setNotifications] = useState({
     dailyCheckin: true,
     newResources: false,
     counselorMsg: true,
   });
 
-  // === AUTH CHECK ===
+  // === AUTHENTICATION LISTENER ===
   useEffect(() => {
+    // Get Firebase auth instance
     const auth = getAuth();
+    // Subscribe to authentication state changes
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
+        // User is logged in: store user and initialize form fields
         setUser(currentUser);
         setFormData({
           displayName: currentUser.displayName || "Student Name",
           email: currentUser.email || "",
         });
       } else {
-        // Redirect if not logged in
+        // User not authenticated: redirect to landing / login page
         window.location.href = "/";
       }
+      // Stop initial loading spinner once auth status is confirmed
       setLoading(false);
     });
+
+    // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, []);
 
-  // === HANDLERS ===
+  // === EVENT HANDLERS ===
+
+  // Toggles boolean state for specified notification preference key
   const handleToggle = (key) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   // 1. UPDATE PROFILE & EMAIL
+  // Saves modifications to student's display name and email address in Firebase
   const handleSave = async () => {
     const auth = getAuth();
     if (!auth.currentUser) return;
 
     try {
-      // Update Display Name
+      // Update display name if it has been modified
       if (formData.displayName !== user.displayName) {
         await updateProfile(auth.currentUser, {
           displayName: formData.displayName,
         });
       }
 
-      // Update Email
-      // NOTE: This might fail if the user hasn't signed in recently (Firebase security rule).
+      // Update email address if changed
+      // Note: Requires a recent login session in Firebase security rules
       if (formData.email !== user.email) {
         await updateEmail(auth.currentUser, formData.email);
       }
 
+      // Notify user of successful updates
       alert("Settings saved successfully! ✅");
 
-      // Force update local state
+      // Synchronize local state with newly updated user profile details
       setUser({
         ...auth.currentUser,
         displayName: formData.displayName,
@@ -100,6 +120,7 @@ const Settings = () => {
       });
     } catch (error) {
       console.error("Error updating profile:", error);
+      // Handle Firebase re-authentication requirement error
       if (error.code === "auth/requires-recent-login") {
         alert(
           "Security Alert: Please sign out and sign back in to change your email address."
@@ -111,25 +132,29 @@ const Settings = () => {
   };
 
   // 2. CHANGE PASSWORD (REAL-TIME FEEDBACK)
+  // Sends a password reset link to user's registered email address
   const handleChangePassword = async () => {
     const auth = getAuth();
     const emailToSend = formData.email || user?.email;
 
+    // Guard check: ensure account email exists
     if (!emailToSend) {
       alert("Error: No email address found for this account.");
       return;
     }
 
+    // Prompt user confirmation before dispatching reset email
     const confirm = window.confirm(
       `Send a password reset email to ${emailToSend}?`
     );
 
     if (confirm) {
       try {
-        setSendingReset(true); // Start loading UI
+        setSendingReset(true); // Enable loading spinner on button
+        // Call Firebase Auth to send password reset email
         await sendPasswordResetEmail(auth, emailToSend);
 
-        // Success Message
+        // Notify user of successful email dispatch
         alert(
           `✅ Password reset email sent to ${emailToSend}!\n\nPlease check your Inbox and Spam folder.`
         );
@@ -137,34 +162,40 @@ const Settings = () => {
         console.error("Error sending reset email:", error);
         alert("Failed to send email: " + error.message);
       } finally {
-        setSendingReset(false); // Stop loading UI
+        setSendingReset(false); // Reset loading button state
       }
     }
   };
 
   // 3. DELETE ACCOUNT
+  // Permanently deletes user account from Firebase after two confirmation steps
   const handleDeleteAccount = async () => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
 
     if (!currentUser) return;
 
+    // Initial confirmation modal
     const confirm1 = window.confirm(
       "Are you sure you want to delete your account? This cannot be undone."
     );
 
     if (confirm1) {
+      // Second strict confirmation modal for high-risk action
       const confirm2 = window.confirm(
         "Final warning: All your journal entries and data will be lost forever. Delete Account?"
       );
 
       if (confirm2) {
         try {
+          // Permanently delete user from Firebase Authentication
           await deleteUser(currentUser);
           alert("Account deleted. Goodbye.");
+          // Redirect to landing page after deletion
           window.location.href = "/";
         } catch (error) {
           console.error("Error deleting account:", error);
+          // Firebase security check: deleting account requires a fresh login token
           if (error.code === "auth/requires-recent-login") {
             alert(
               "Security Alert: Please sign out and sign back in to confirm your identity before deleting your account."
@@ -177,12 +208,15 @@ const Settings = () => {
     }
   };
 
+  // 4. SIGN OUT
+  // Logs the user out of Firebase and redirects to landing page
   const handleLogout = async () => {
     const auth = getAuth();
     await signOut(auth);
     window.location.href = "/";
   };
 
+  // Render centered spinner while authentication status resolves
   if (loading)
     return (
       <div className="min-h-screen bg-[#0F172A] pt-20 text-white text-center flex items-center justify-center">
@@ -192,11 +226,12 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-[#0F172A] font-sans text-gray-200 pt-20 relative">
-      {/* === CHATBOT === */}
+      {/* === FLOATING CHATBOT WIDGET === */}
       <Chatbot />
 
-      {/* ================= NAVBAR ================= */}
+      {/* ================= FIXED TOP NAVIGATION BAR ================= */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-[#0F172A] px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+        {/* Brand Logo & Name */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -208,7 +243,7 @@ const Settings = () => {
           </h1>
         </div>
 
-        {/* Mobile Hamburger */}
+        {/* Mobile Hamburger Menu Toggle Button */}
         <button
           className="md:hidden text-gray-300 text-2xl focus:outline-none"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -216,7 +251,7 @@ const Settings = () => {
           {mobileMenuOpen ? <X /> : <Menu />}
         </button>
 
-        {/* Desktop Menu */}
+        {/* Desktop Navigation Links */}
         <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <li>
             <a href="/dashboard" className="hover:text-white transition">
@@ -240,7 +275,7 @@ const Settings = () => {
           </li>
         </ul>
 
-        {/* Profile Dropdown */}
+        {/* Desktop User Avatar & Dropdown Menu */}
         <div className="hidden md:block relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -249,6 +284,7 @@ const Settings = () => {
             <User className="text-white" size={24} />
           </button>
 
+          {/* Profile Dropdown Popup */}
           {isProfileOpen && (
             <div className="absolute right-0 top-12 w-56 bg-[#1E293B] border border-gray-700 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-2">
               <div className="px-4 py-3 border-b border-gray-700">
@@ -265,7 +301,7 @@ const Settings = () => {
           )}
         </div>
 
-        {/* Mobile Menu Content */}
+        {/* Mobile Dropdown Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50 animate-in slide-in-from-top-5">
             <a
@@ -296,9 +332,9 @@ const Settings = () => {
         )}
       </nav>
 
-      {/* ================= MAIN SETTINGS CONTENT ================= */}
+      {/* ================= MAIN SETTINGS CONTENT CONTAINER ================= */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8">
-        {/* Header */}
+        {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
             <SettingsIcon className="w-8 h-8 text-blue-500" /> Account Settings
@@ -309,7 +345,7 @@ const Settings = () => {
         </div>
 
         <div className="space-y-8">
-          {/* 1. PROFILE SECTION */}
+          {/* 1. PROFILE SECTION: Full Name and Email Editing */}
           <section className="bg-[#1E293B] rounded-2xl border border-gray-700 overflow-hidden">
             <div className="p-6 border-b border-gray-700">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -320,6 +356,7 @@ const Settings = () => {
             <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-start">
               <div className="flex-1 w-full space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Full Name Input Field */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                       Full Name
@@ -336,6 +373,7 @@ const Settings = () => {
                       className="w-full bg-[#0F172A] border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none transition"
                     />
                   </div>
+                  {/* Email Address Input Field */}
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                       Email Address
@@ -351,6 +389,7 @@ const Settings = () => {
                   </div>
                 </div>
 
+                {/* Save Changes Button */}
                 <div className="pt-2">
                   <button
                     onClick={handleSave}
@@ -363,7 +402,7 @@ const Settings = () => {
             </div>
           </section>
 
-          {/* 2. PREFERENCES SECTION */}
+          {/* 2. PREFERENCES SECTION: Notification Toggles */}
           <section className="bg-[#1E293B] rounded-2xl border border-gray-700 overflow-hidden">
             <div className="p-6 border-b border-gray-700">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -372,7 +411,7 @@ const Settings = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Daily Checkin Toggle */}
+              {/* Daily Mood Check-in Toggle Switch */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
@@ -403,7 +442,7 @@ const Settings = () => {
                 </button>
               </div>
 
-              {/* Counselor Messages Toggle */}
+              {/* Counselor Messages Email Notification Toggle Switch */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400">
@@ -436,7 +475,7 @@ const Settings = () => {
             </div>
           </section>
 
-          {/* 3. SECURITY & DANGER ZONE */}
+          {/* 3. SECURITY & DANGER ZONE SECTION */}
           <section className="bg-[#1E293B] rounded-2xl border border-gray-700 overflow-hidden">
             <div className="p-6 border-b border-gray-700">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -444,7 +483,7 @@ const Settings = () => {
               </h2>
             </div>
             <div className="p-6">
-              {/* CHANGE PASSWORD BUTTON */}
+              {/* CHANGE PASSWORD BUTTON: Triggers password reset email */}
               <button
                 onClick={handleChangePassword}
                 disabled={sendingReset}
@@ -467,6 +506,7 @@ const Settings = () => {
                 )}
               </button>
 
+              {/* DANGER ZONE: Permanent Account Deletion */}
               <div className="mt-8 pt-6 border-t border-gray-700/50">
                 <h3 className="text-sm font-bold text-red-400 mb-2">
                   Danger Zone
@@ -487,7 +527,7 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer Notice */}
       <footer className="border-t border-gray-800 py-8 text-center text-gray-500 text-xs md:text-sm px-4 mt-12">
         <p>&copy; 2023 MindNest. All rights reserved.</p>
       </footer>

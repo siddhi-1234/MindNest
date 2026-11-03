@@ -17,51 +17,65 @@ import {
 } from "lucide-react";
 
 const Resources = () => {
-  const navigate = useNavigate(); // 2. Initialize navigation hook
+  // Navigation hook instance
+  const navigate = useNavigate();
+  // State to toggle mobile navigation menu drawer
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Tracks active resource category tab
   const [activeCategory, setActiveCategory] = useState("All Resources");
 
   // === VIDEO STATE ===
+  // Stores ID of the video currently playing inside an inline embedded YouTube iframe
   const [playingVideo, setPlayingVideo] = useState(null);
 
   // === ARTICLE STATE ===
+  // Holds the article object currently open in the reading modal (null when closed)
   const [activeArticle, setActiveArticle] = useState(null);
 
   // === AUDIO STATE ===
+  // Holds the currently selected music or ambient sound track
   const [currentSong, setCurrentSong] = useState(null);
+  // Playback state flag for the audio player
   const [isPlaying, setIsPlaying] = useState(false);
+  // Ref pointing directly to the hidden HTML5 <audio> element
   const audioRef = useRef(null);
 
-  // Handle Audio Play/Pause
+  // Synchronizes the native HTML audio element with React playback state
   useEffect(() => {
     if (currentSong && audioRef.current) {
       if (isPlaying) {
+        // Resume or start audio playback
         audioRef.current.play();
       } else {
+        // Pause audio playback
         audioRef.current.pause();
       }
     }
   }, [currentSong, isPlaying]);
 
+  // Handler for playlist track clicks (toggles play/pause or switches song)
   const handleSongClick = (song) => {
+    // If clicking the track that is already loaded, toggle play/pause
     if (currentSong?.title === song.title) {
       setIsPlaying(!isPlaying);
     } else {
+      // Load new song and start playing
       setCurrentSong(song);
       setIsPlaying(true);
     }
   };
 
-  // === DATA WITH PATHS ===
-  // 3. Added 'path' to each category to link to your other pages
+  // === CATEGORY NAVIGATION TABS DATA ===
+  // List of wellness categories with associated icons and page route paths
   const categories = [
     { name: "All Resources", icon: null, path: "/Resources" },
-    { name: "Breathing & Meditation", icon: Wind, path: "/BreathMed" }, // Links to BreathMed.jsx
+    { name: "Breathing & Meditation", icon: Wind, path: "/BreathMed" },
     { name: "Tips for Good Health", icon: Heart, path: "/TipsForHealth" },
     { name: "Tips for Better Sleep", icon: Moon, path: "/SleepTips" },
     { name: "Stress Management", icon: Leaf, path: "/StressRelief" },
   ];
 
+  // Curated mindfulness video recommendations with YouTube embed IDs
   const videos = [
     {
       id: 1,
@@ -81,6 +95,7 @@ const Resources = () => {
     },
   ];
 
+  // Calming playlist tracks with cover images and remote MP3 audio streams
   const songs = [
     {
       title: "Weightless",
@@ -116,6 +131,7 @@ const Resources = () => {
     },
   ];
 
+  // Written wellness guides covering stress reduction techniques and sleep habits
   const articles = [
     {
       id: 1,
@@ -162,8 +178,10 @@ const Resources = () => {
   ];
 
   return (
+    // Outer page container with dark theme background
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans relative">
       {/* ================= HIDDEN AUDIO PLAYER ================= */}
+      {/* Native HTML audio element managed via audioRef */}
       <audio
         ref={audioRef}
         src={currentSong?.audio}
@@ -171,15 +189,18 @@ const Resources = () => {
       />
 
       {/* ================= ARTICLE MODAL ================= */}
+      {/* Full article reader modal rendered when activeArticle is set */}
       {activeArticle && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#1E293B] w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-700">
+            {/* Close modal button */}
             <button
               onClick={() => setActiveArticle(null)}
               className="absolute top-4 right-4 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition"
             >
               <X className="w-5 h-5" />
             </button>
+            {/* Modal header image with gradient and title */}
             <div className="h-64 shrink-0 relative">
               <img
                 src={activeArticle.image}
@@ -188,14 +209,17 @@ const Resources = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1E293B] to-transparent"></div>
               <div className="absolute bottom-4 left-6 right-6">
+                {/* Category tag badge */}
                 <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded mb-2 inline-block">
                   {activeArticle.tag}
                 </span>
+                {/* Article title */}
                 <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                   {activeArticle.title}
                 </h2>
               </div>
             </div>
+            {/* Scrollable article text content */}
             <div className="p-6 md:p-8 overflow-y-auto text-gray-300 leading-relaxed text-lg">
               <div
                 dangerouslySetInnerHTML={{ __html: activeArticle.content }}
@@ -206,7 +230,9 @@ const Resources = () => {
       )}
 
       {/* ================= NAVBAR ================= */}
+      {/* Sticky top navigation header */}
       <nav className="flex items-center justify-between px-4 md:px-8 py-4 bg-[#0F172A] border-b border-gray-800 sticky top-0 z-50">
+        {/* Brand logo and application title */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -218,6 +244,7 @@ const Resources = () => {
           </h1>
         </div>
 
+        {/* Desktop navigation links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a href="/Dashboard" className="hover:text-white transition">
             Dashboard
@@ -236,6 +263,7 @@ const Resources = () => {
           </a>
         </div>
 
+        {/* Mobile menu hamburger toggle button */}
         <div className="flex items-center gap-4">
           <button
             className="md:hidden text-gray-300"
@@ -249,6 +277,7 @@ const Resources = () => {
           </button>
         </div>
 
+        {/* Mobile menu dropdown navigation list */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50 animate-in slide-in-from-top-2 duration-200">
             <a
@@ -287,8 +316,10 @@ const Resources = () => {
 
       {/* ================= HERO SECTION ================= */}
       <div className="relative bg-gradient-to-b from-[#1e293b] to-[#0F172A] py-12 md:py-20 px-4 md:px-6 text-center overflow-hidden">
+        {/* Background ambient radial blur effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
+        {/* Hero title & introductory subtitle */}
         <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 relative z-10 glow-pulse">
           Wellness Library
         </h1>
@@ -297,6 +328,7 @@ const Resources = () => {
           tools to navigate your day.
         </p>
 
+        {/* Motivational quote reflection card */}
         <div className="max-w-2xl mx-auto relative group">
           <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl transition-all duration-500 hover:bg-white/10 hover:border-blue-400/30">
             <div className="absolute -top-4 -left-2 text-blue-400/30 transform -scale-x-100">
@@ -323,15 +355,17 @@ const Resources = () => {
         </div>
       </div>
 
-      {/* ================= CATEGORY TABS (UPDATED) ================= */}
+      {/* ================= CATEGORY TABS ================= */}
+      {/* Horizontally scrollable category pills linking to specialized resources */}
       <div className="px-4 md:px-12 py-6 overflow-x-auto no-scrollbar">
         <div className="flex gap-3 md:gap-4 min-w-max md:w-max md:mx-auto">
           {categories.map((cat) => (
             <button
               key={cat.name}
               onClick={() => {
+                // Update active tab and redirect to corresponding route
                 setActiveCategory(cat.name);
-                navigate(cat.path); // 4. Navigate to the path on click
+                navigate(cat.path);
               }}
               className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
                 activeCategory === cat.name
@@ -348,9 +382,9 @@ const Resources = () => {
 
       {/* ================= MAIN CONTENT GRID ================= */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* === LEFT COLUMN === */}
+        {/* === LEFT COLUMN: VIDEOS & ARTICLES (8 SPANS) === */}
         <div className="lg:col-span-8 space-y-8 md:space-y-12">
-          {/* Watch & Relax */}
+          {/* Watch & Relax video section */}
           <section>
             <div className="flex justify-between items-end mb-4 md:mb-6">
               <h2 className="text-xl md:text-2xl font-bold text-white">
@@ -363,11 +397,14 @@ const Resources = () => {
                 View all <ArrowRight className="w-4 h-4" />
               </a>
             </div>
+            {/* Video Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {videos.map((video) => (
                 <div key={video.id} className="group cursor-pointer">
+                  {/* Aspect ratio container: plays embedded YouTube video or displays thumbnail */}
                   <div className="relative rounded-xl overflow-hidden aspect-video mb-3 border border-gray-700 shadow-lg bg-black">
                     {playingVideo === video.id ? (
+                      /* Embedded YouTube Player with autoplay */
                       <iframe
                         width="100%"
                         height="100%"
@@ -378,6 +415,7 @@ const Resources = () => {
                         allowFullScreen
                       ></iframe>
                     ) : (
+                      /* Video thumbnail preview with click-to-play overlay */
                       <div
                         onClick={() => setPlayingVideo(video.id)}
                         className="w-full h-full relative"
@@ -387,17 +425,20 @@ const Resources = () => {
                           alt={video.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80 group-hover:opacity-100"
                         />
+                        {/* Play button overlay */}
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition">
                           <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:scale-110 transition duration-300">
                             <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                           </div>
                         </div>
+                        {/* Duration badge */}
                         <span className="absolute bottom-2 right-2 bg-black/70 text-xs px-2 py-1 rounded text-white font-mono">
                           {video.duration}
                         </span>
                       </div>
                     )}
                   </div>
+                  {/* Video title and description */}
                   <h3 className="font-bold text-lg text-gray-100 group-hover:text-blue-400 transition">
                     {video.title}
                   </h3>
@@ -407,7 +448,7 @@ const Resources = () => {
             </div>
           </section>
 
-          {/* Tips Section */}
+          {/* Tips for Stress-Free Living article cards section */}
           <section>
             <h2 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">
               Tips for Stress-Free Living
@@ -419,6 +460,7 @@ const Resources = () => {
                   onClick={() => setActiveArticle(article)}
                   className="bg-[#1E293B] rounded-2xl p-4 flex flex-col sm:flex-row gap-4 md:gap-6 border border-gray-700 hover:border-blue-500/50 transition group cursor-pointer"
                 >
+                  {/* Article thumbnail */}
                   <div className="w-full sm:w-48 h-40 sm:h-32 shrink-0 rounded-xl overflow-hidden">
                     <img
                       src={article.image}
@@ -426,8 +468,10 @@ const Resources = () => {
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                     />
                   </div>
+                  {/* Article content metadata and preview */}
                   <div className="flex flex-col justify-between py-1">
                     <div>
+                      {/* Tag badge and reading time */}
                       <div className="flex items-center gap-3 text-xs mb-2">
                         <span className="bg-blue-900/50 text-blue-300 px-2 py-1 rounded font-bold tracking-wider">
                           {article.tag}
@@ -436,6 +480,7 @@ const Resources = () => {
                           <Clock className="w-3 h-3" /> {article.readTime}
                         </span>
                       </div>
+                      {/* Title and short excerpt */}
                       <h3 className="text-lg md:text-xl font-bold text-gray-100 mb-2 group-hover:text-blue-400 transition">
                         {article.title}
                       </h3>
@@ -443,6 +488,7 @@ const Resources = () => {
                         {article.desc}
                       </p>
                     </div>
+                    {/* Read Article link indicator */}
                     <div className="mt-3 flex items-center text-blue-400 text-sm font-medium gap-1 group-hover:gap-2 transition-all">
                       Read Article <ArrowRight className="w-4 h-4" />
                     </div>
@@ -453,9 +499,11 @@ const Resources = () => {
           </section>
         </div>
 
-        {/* === RIGHT COLUMN (Music Widget) === */}
+        {/* === RIGHT COLUMN: MUSIC WIDGET & QUICK BREATHING (4 SPANS) === */}
         <div className="lg:col-span-4 space-y-6 md:space-y-8">
+          {/* Uplifting Tunes audio playlist widget */}
           <div className="bg-[#1E293B] rounded-2xl p-6 border border-gray-700 shadow-xl relative overflow-hidden">
+            {/* Widget Header with animated music icon when playing */}
             <div className="flex items-center gap-3 mb-6 relative z-10">
               <div
                 className={`p-2 rounded-lg transition-colors ${
@@ -479,6 +527,7 @@ const Resources = () => {
                 </p>
               </div>
             </div>
+            {/* Playlist Track Items */}
             <div className="space-y-4 relative z-10">
               {songs.map((song, i) => (
                 <div
@@ -490,6 +539,7 @@ const Resources = () => {
                       : "hover:bg-gray-700/50 border-transparent"
                   }`}
                 >
+                  {/* Track album cover with play/pause overlay */}
                   <div className="relative w-10 h-10 shrink-0">
                     <img
                       src={song.cover}
@@ -506,6 +556,7 @@ const Resources = () => {
                       </div>
                     )}
                   </div>
+                  {/* Track title and artist */}
                   <div className="flex-1 min-w-0">
                     <h4
                       className={`text-sm font-bold truncate ${
@@ -520,17 +571,20 @@ const Resources = () => {
                       {song.artist}
                     </p>
                   </div>
+                  {/* Track duration */}
                   <span className="text-xs text-gray-500 font-mono">
                     {song.time}
                   </span>
                 </div>
               ))}
             </div>
+            {/* Subtle bottom gradient glow when playing */}
             {isPlaying && (
               <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-blue-900/20 to-transparent pointer-events-none"></div>
             )}
           </div>
 
+          {/* Quick breathing exercise prompt card */}
           <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-blue-900 to-[#1E293B] border border-blue-800/50">
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-4">
@@ -543,6 +597,7 @@ const Resources = () => {
                 Take a moment to breathe. Follow the circle to reset your
                 nervous system.
               </p>
+              {/* Button linking to guided breathing exercises */}
               <button
                 onClick={() => navigate("/BreathMed")}
                 className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-bold transition shadow-lg shadow-blue-900/50"
@@ -555,6 +610,7 @@ const Resources = () => {
         </div>
       </div>
 
+      {/* Page footer */}
       <footer className="border-t border-gray-800 py-8 text-center text-gray-500 text-xs md:text-sm px-4">
         <p>
           &copy; 2023 MindNest. All rights reserved.{" "}

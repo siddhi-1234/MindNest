@@ -26,23 +26,31 @@ import axios from "axios";
 // ================= REUSABLE COMPONENTS =================
 const ToggleSwitch = ({ enabled, onChange }) => (
   <button
+    // Invert the current toggle state on click
     onClick={() => onChange(!enabled)}
     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enabled ? "bg-cyan-600" : "bg-gray-400"}`}
   >
+    {/* Sliding circular indicator knob */}
     <span
       className={`${enabled ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
     />
   </button>
 );
 
-// ... (ChangePasswordModal & TechSupportModal remain exactly the same) ...
+/**
+ * ChangePasswordModal Component
+ * Modal dialog prompting counselors for their current password and new password with validation.
+ */
 const ChangePasswordModal = ({ isOpen, onClose, onSave, loading }) => {
+  // Input states for password modification
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
 
+  // Do not render modal if not open
   if (!isOpen) return null;
 
+  // Validates inputs and delegates password update to parent handler
   const handleSubmit = () => {
     if (newPass !== confirmPass) return alert("New passwords do not match.");
     if (newPass.length < 6)
@@ -51,12 +59,15 @@ const ChangePasswordModal = ({ isOpen, onClose, onSave, loading }) => {
   };
 
   return (
+    // Backdrop overlay
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      {/* Modal Dialog Card */}
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <h3 className="text-xl font-bold text-gray-900 mb-4">
           Change Password
         </h3>
         <div className="space-y-4">
+          {/* Current password input field */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
               Current Password
@@ -68,6 +79,7 @@ const ChangePasswordModal = ({ isOpen, onClose, onSave, loading }) => {
               onChange={(e) => setCurrentPass(e.target.value)}
             />
           </div>
+          {/* New password input field */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
               New Password
@@ -79,6 +91,7 @@ const ChangePasswordModal = ({ isOpen, onClose, onSave, loading }) => {
               onChange={(e) => setNewPass(e.target.value)}
             />
           </div>
+          {/* Confirm new password input field */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
               Confirm New Password
@@ -91,6 +104,7 @@ const ChangePasswordModal = ({ isOpen, onClose, onSave, loading }) => {
             />
           </div>
         </div>
+        {/* Modal Action Buttons */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
@@ -111,23 +125,35 @@ const ChangePasswordModal = ({ isOpen, onClose, onSave, loading }) => {
   );
 };
 
+/**
+ * TechSupportModal Component
+ * Modal dialog allowing counselors to file bug reports or support inquiries directly to administrators.
+ */
 const TechSupportModal = ({ isOpen, onClose, onSend, loading }) => {
+  // Input state for bug report description
   const [issue, setIssue] = useState("");
+  
+  // Do not render modal if not open
   if (!isOpen) return null;
+
   return (
+    // Backdrop overlay
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      {/* Modal Dialog Card */}
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <h3 className="text-xl font-bold text-gray-900 mb-2">Report a Bug</h3>
         <p className="text-sm text-gray-500 mb-4">
           Describe the issue you are facing. We will send this directly to the
           admin team.
         </p>
+        {/* Text area for issue description */}
         <textarea
           className="w-full p-3 border rounded-xl h-32 resize-none focus:ring-2 focus:ring-cyan-500 outline-none"
           placeholder="I clicked on the calendar and..."
           value={issue}
           onChange={(e) => setIssue(e.target.value)}
         ></textarea>
+        {/* Modal Action Buttons */}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
@@ -148,15 +174,26 @@ const TechSupportModal = ({ isOpen, onClose, onSend, loading }) => {
   );
 };
 
+/**
+ * SettingsPage Component
+ * Dedicated counselor settings panel for managing credentials, professional profile bio,
+ * session types & duration preferences, notification alerts, and technical support.
+ */
 const SettingsPage = () => {
-  const navigate = useNavigate(); // ✅ Initialize Navigation Hook
+  // Hook for programmatic route redirection
+  const navigate = useNavigate();
+  // Stores currently authenticated Firebase user
   const [currentUser, setCurrentUser] = useState(null);
+  // Controls responsive mobile sidebar menu visibility
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Tracks loading state for saving profile, changing password, and sending support reports
   const [loading, setLoading] = useState(false);
 
+  // Modal display visibility toggles
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
 
+  // Counselor professional profile fields
   const [profile, setProfile] = useState({
     name: "Loading...",
     role: "Counselor",
@@ -166,23 +203,29 @@ const SettingsPage = () => {
     image: "https://i.pravatar.cc/150?img=12",
   });
 
+  // Counselor session preferences (channels and session duration)
   const [preferences, setPreferences] = useState({
     sessionTypes: { video: true, chat: true, phone: false },
     duration: 30,
   });
 
+  // Notification toggle settings
   const [notifications, setNotifications] = useState({
     appointmentRequests: true,
     studentMessages: true,
     emergencyAlerts: true,
   });
 
+  // Fetches counselor profile details from backend matching authenticated user UID
   const fetchSettings = async (user) => {
     try {
+      // Query counselor directory endpoint
       const response = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
+      // Find the specific counselor entry matching this user's UID
       const counselorData = response.data.find((c) => c.uid === user.uid);
 
       if (counselorData) {
+        // Populate profile state with counselor data or fallbacks
         setProfile({
           name: counselorData.name || user.displayName || "Counselor",
           role: counselorData.title || "Mental Health Professional",
@@ -197,23 +240,26 @@ const SettingsPage = () => {
     }
   };
 
+  // Auth observer: monitors login state and triggers profile data fetching
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
         fetchSettings(user);
       } else {
-        // Optional: Auto-redirect if not logged in
-        // navigate("/");
+        // User is not signed in
       }
     });
+    // Unsubscribe auth listener on component unmount
     return () => unsubscribe();
   }, [navigate]);
 
+  // Saves counselor profile updates to backend MongoDB database
   const handleSaveAll = async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
+      // Send updated profile fields to backend counselor update route
       await axios.put(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors/${currentUser.uid}`,
         {
@@ -233,6 +279,7 @@ const SettingsPage = () => {
     }
   };
 
+  // Discards unsaved local changes and re-fetches original data from backend
   const handleDiscard = () => {
     if (
       window.confirm(
@@ -243,16 +290,20 @@ const SettingsPage = () => {
     }
   };
 
+  // Handles secure password change with reauthentication and confirmation email alert
   const handlePasswordUpdate = async (currentPass, newPass) => {
     setLoading(true);
     try {
+      // Re-authenticate user with current password credentials before updating
       const credential = EmailAuthProvider.credential(
         currentUser.email,
         currentPass,
       );
       await reauthenticateWithCredential(currentUser, credential);
+      // Update Firebase password
       await updatePassword(currentUser, newPass);
 
+      // Send email alert to counselor's registered email
       await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email`, {
         email: currentUser.email,
         subject: "Security Alert: Password Changed",
@@ -269,10 +320,12 @@ const SettingsPage = () => {
     }
   };
 
+  // Submits a bug report to the system administrator email address
   const handleTechSupportSubmit = async (issue) => {
     setLoading(true);
     try {
       const ADMIN_EMAIL = "patilsiddhi2709@gmail.com";
+      // Dispatch bug report email via backend mailing service
       await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email`, {
         email: ADMIN_EMAIL,
         subject: `🐛 Bug Report from ${profile.name}`,
@@ -289,14 +342,15 @@ const SettingsPage = () => {
     }
   };
 
-  // ✅ UPDATED LOGOUT HANDLER
+  // Counselor Sign Out handler with confirmation prompt
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to log out?")) {
       await signOut(auth);
-      navigate("/counselor/login"); // Redirects to Login Page
+      navigate("/counselor/login"); // Redirects to Counselor Login Page
     }
   };
 
+  // Opens counselor handbook search in an external browser tab
   const openHandbook = () => {
     window.open(
       "https://www.google.com/search?q=counselor+handbook+guidelines+pdf",
@@ -309,18 +363,20 @@ const SettingsPage = () => {
       style={{ backgroundColor: "#04151f" }}
       className="min-h-screen font-sans flex flex-col h-screen overflow-hidden text-gray-800"
     >
-      {/* HEADER */}
+      {/* ================= HEADER BAR ================= */}
       <header
         style={{ backgroundColor: "#214e34" }}
         className="border-b border-white/10 px-4 md:px-6 h-16 flex items-center justify-between shrink-0 z-30 shadow-md"
       >
         <div className="flex items-center gap-3">
+          {/* Mobile sidebar toggle button */}
           <button
             className="md:hidden text-white hover:text-cyan-300"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           >
             <Menu size={24} />
           </button>
+          {/* Portal branding */}
           <div className="flex items-center gap-2">
             <img
               src="/logo.png"
@@ -332,6 +388,7 @@ const SettingsPage = () => {
             </span>
           </div>
         </div>
+        {/* Header Actions: Logout Button */}
         <div className="flex items-center gap-4">
           <button
             onClick={handleLogout}
@@ -344,7 +401,7 @@ const SettingsPage = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* SIDEBAR */}
+        {/* Mobile Sidebar Backdrop Overlay */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-20 md:hidden"
@@ -352,11 +409,13 @@ const SettingsPage = () => {
           ></div>
         )}
 
+        {/* ================= SIDEBAR NAVIGATION ================= */}
         <aside
           style={{ backgroundColor: "#1b263b" }}
           className={`fixed md:relative inset-y-0 left-0 z-30 w-64 border-r border-white/10 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="p-6">
+            {/* Counselor Profile Summary Widget */}
             <div className="flex items-center gap-3 mb-8">
               <img
                 src={profile.image}
@@ -370,7 +429,9 @@ const SettingsPage = () => {
                 <p className="text-cyan-400 text-xs truncate">{profile.role}</p>
               </div>
             </div>
+            {/* Sidebar Navigation Links */}
             <nav className="space-y-2">
+              {/* Dashboard Link */}
               <Link
                 to="/CounselorDashboard"
                 className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 rounded-xl transition-colors"
@@ -392,6 +453,7 @@ const SettingsPage = () => {
                 </div>
                 <span className="font-medium">Dashboard</span>
               </Link>
+              {/* Students Page Link */}
               <Link
                 to="/StudentsPage"
                 className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-white/10 rounded-xl transition-colors"
@@ -401,6 +463,7 @@ const SettingsPage = () => {
                 </div>
                 <span className="font-medium">Students</span>
               </Link>
+              {/* Current Active Page: Settings */}
               <div className="flex items-center gap-3 px-4 py-3 bg-cyan-600/20 text-cyan-300 rounded-xl border border-cyan-500/30">
                 <div className="w-5">
                   <svg
@@ -429,9 +492,10 @@ const SettingsPage = () => {
           </div>
         </aside>
 
-        {/* MAIN CONTENT */}
+        {/* ================= MAIN CONTENT VIEWPORT ================= */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-4xl mx-auto space-y-8">
+            {/* Page Title & Subtitle */}
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
               <p className="text-gray-400">
@@ -439,13 +503,14 @@ const SettingsPage = () => {
               </p>
             </div>
 
-            {/* PROFESSIONAL PROFILE */}
+            {/* 1. PROFESSIONAL PROFILE CARD */}
             <div className="bg-[#d8e2dc] rounded-2xl p-6 shadow-lg border border-gray-200">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <User className="text-cyan-700" size={20} /> Professional
                   Profile
                 </h2>
+                {/* Save Changes button in card header */}
                 <button
                   onClick={handleSaveAll}
                   disabled={loading}
@@ -455,6 +520,7 @@ const SettingsPage = () => {
                 </button>
               </div>
               <div className="flex flex-col md:flex-row gap-6">
+                {/* Profile Photo Avatar */}
                 <div className="flex-shrink-0">
                   <div className="relative">
                     <img
@@ -467,6 +533,7 @@ const SettingsPage = () => {
                     </button>
                   </div>
                 </div>
+                {/* Profile Details & Form Inputs */}
                 <div className="flex-1 space-y-4">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">
@@ -480,6 +547,7 @@ const SettingsPage = () => {
                         • {profile.role}
                       </span>
                     </div>
+                    {/* Verification & visibility badges */}
                     <div className="flex gap-2 mt-2">
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded">
                         Verified Professional
@@ -489,6 +557,7 @@ const SettingsPage = () => {
                       </span>
                     </div>
                   </div>
+                  {/* Specialty and License Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
@@ -516,6 +585,7 @@ const SettingsPage = () => {
                       />
                     </div>
                   </div>
+                  {/* Bio textarea */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
                       Professional Bio
@@ -534,13 +604,14 @@ const SettingsPage = () => {
               </div>
             </div>
 
-            {/* WORK PREFERENCES */}
+            {/* 2. WORK PREFERENCES CARD */}
             <div className="bg-[#d8e2dc] rounded-2xl p-6 shadow-lg border border-gray-200">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
                 <Calendar className="text-cyan-700" size={20} /> Work
                 Preferences
               </h2>
               <div className="space-y-6">
+                {/* Session Type checkboxes (Video, Chat, Phone) */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-300">
                   <div>
                     <h4 className="text-sm font-bold text-gray-900">
@@ -581,6 +652,7 @@ const SettingsPage = () => {
                     ))}
                   </div>
                 </div>
+                {/* Default session duration selector buttons (30, 45, 60 minutes) */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <h4 className="text-sm font-bold text-gray-900">
                     Default Session Duration
@@ -602,13 +674,14 @@ const SettingsPage = () => {
               </div>
             </div>
 
-            {/* NOTIFICATION CONTROL */}
+            {/* 3. NOTIFICATION CONTROL CARD */}
             <div className="bg-[#d8e2dc] rounded-2xl p-6 shadow-lg border border-gray-200">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
                 <Bell className="text-cyan-700" size={20} /> Notification
                 Control
               </h2>
               <div className="space-y-6">
+                {/* Appointment requests toggle switch */}
                 <div className="flex items-center justify-between pb-4 border-b border-gray-300">
                   <div>
                     <h4 className="text-sm font-bold text-gray-900">
@@ -631,13 +704,14 @@ const SettingsPage = () => {
               </div>
             </div>
 
-            {/* SECURITY */}
+            {/* 4. SECURITY & PRIVACY CARD */}
             <div className="bg-[#d8e2dc] rounded-2xl p-6 shadow-lg border border-gray-200">
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
                 <Shield className="text-cyan-700" size={20} /> Security &
                 Privacy
               </h2>
               <div className="space-y-4">
+                {/* Password Management row triggering ChangePasswordModal */}
                 <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200">
                   <div className="flex items-center gap-4">
                     <div className="bg-gray-100 p-2 rounded-lg text-gray-600">
@@ -662,8 +736,9 @@ const SettingsPage = () => {
               </div>
             </div>
 
-            {/* FOOTER CARDS */}
+            {/* 5. FOOTER QUICK ACTION CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* External Counselor Handbook link */}
               <button
                 onClick={openHandbook}
                 className="bg-[#d8e2dc] p-6 rounded-2xl border border-gray-200 text-left hover:bg-[#c9d6cf] transition group relative"
@@ -678,6 +753,7 @@ const SettingsPage = () => {
                   className="absolute top-6 right-6 text-gray-400 group-hover:text-gray-600"
                 />
               </button>
+              {/* Technical Support Modal trigger */}
               <button
                 onClick={() => setShowTechModal(true)}
                 className="bg-[#d8e2dc] p-6 rounded-2xl border border-gray-200 text-left hover:bg-[#c9d6cf] transition group relative"
@@ -694,14 +770,16 @@ const SettingsPage = () => {
               </button>
             </div>
 
-            {/* GLOBAL ACTIONS */}
+            {/* 6. GLOBAL FOOTER ACTIONS */}
             <div className="flex flex-col-reverse md:flex-row justify-between items-center pt-8 pb-12 gap-4">
+              {/* Global logout button */}
               <button
                 onClick={handleLogout}
                 className="text-red-400 hover:text-red-300 font-medium flex items-center gap-2 text-sm"
               >
                 <LogOut size={16} /> Log out of all devices
               </button>
+              {/* Discard and Save Changes buttons */}
               <div className="flex items-center gap-4 w-full md:w-auto">
                 <button
                   onClick={handleDiscard}
@@ -722,12 +800,14 @@ const SettingsPage = () => {
         </main>
       </div>
 
+      {/* Change Password Modal Dialog */}
       <ChangePasswordModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
         onSave={handlePasswordUpdate}
         loading={loading}
       />
+      {/* Tech Support Bug Report Modal Dialog */}
       <TechSupportModal
         isOpen={showTechModal}
         onClose={() => setShowTechModal(false)}
