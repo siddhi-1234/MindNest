@@ -6,29 +6,40 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 
 export default function Login() {
+  // State toggling password visibility between masked and plain text
   const [showPassword, setShowPassword] = useState(false);
+  // Controlled input states for student credentials
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Error message state displayed upon failed login attempt
   const [error, setError] = useState("");
+  // Router navigation instance
   const navigate = useNavigate();
 
+  // Handler to authenticate student with Firebase
   const handleLogin = async () => {
+    // Clear any previous error messages
     setError("");
     try {
-      //Calls Firebase Auth's method to authenticate the user
+      // Calls Firebase Auth's method to authenticate student credentials
       await signInWithEmailAndPassword(auth, email, password);
+      // Navigate to student dashboard upon successful authentication
       navigate("/dashboard");
     } catch (err) {
+      // Set error message to inform user of login failure
       setError(err.message);
     }
   };
 
   return (
+    // Outer full-screen container with centered background image and alignment
     <div
       className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-6 md:p-10"
       style={{ backgroundImage: "url('/screen.png')" }}
     >
+      {/* Frosted glass login card container */}
       <div className="w-full max-w-[440px] bg-[#1e2532]/85 backdrop-blur-md rounded-[40px] p-8 md:p-12 border border-white/5 shadow-2xl overflow-hidden">
+        {/* Welcome titles */}
         <div className="flex flex-col items-center mb-10 text-center">
           <h1 className="text-3xl font-semibold text-white mb-3">
             Welcome back.
@@ -38,19 +49,24 @@ export default function Login() {
           </p>
         </div>
 
+        {/* Error message banner (rendered only when an error occurs) */}
         {error && (
           <p className="text-red-400 text-xs mb-4 text-center bg-red-500/10 py-2 rounded-lg">
             {error}
           </p>
         )}
 
+        {/* Credentials Form Inputs */}
         <div className="space-y-6">
+          {/* Email Address Input Field */}
           <div>
             <label className="text-[10px] uppercase tracking-[0.15em] text-gray-400 ml-1 mb-2 block font-bold">
               Email Address
             </label>
             <div className="flex items-center bg-[#28303f]/60 border border-white/10 rounded-2xl px-4 h-14 focus-within:border-blue-500/50 transition-all">
+              {/* Mail icon */}
               <FiMail className="text-gray-500 text-lg" />
+              {/* Controlled email input element */}
               <input
                 type="email"
                 value={email}
@@ -61,12 +77,15 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Password Input Field */}
           <div>
             <label className="text-[10px] uppercase tracking-[0.15em] text-gray-400 ml-1 mb-2 block font-bold">
               Password
             </label>
             <div className="flex items-center bg-[#28303f]/60 border border-white/10 rounded-2xl px-4 h-14 focus-within:border-blue-500/50 transition-all">
+              {/* Lock icon */}
               <FiLock className="text-gray-500 text-lg" />
+              {/* Controlled password input element (toggles text/password type) */}
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
@@ -74,6 +93,7 @@ export default function Login() {
                 className="ml-3 w-full bg-transparent outline-none text-white placeholder-gray-600 text-sm"
                 placeholder="Enter your password"
               />
+              {/* Toggle button to switch password visibility between revealed and masked */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -85,6 +105,7 @@ export default function Login() {
           </div>
         </div>
 
+        {/* Submit Log In action button */}
         <button
           onClick={handleLogin}
           className="w-full bg-[#3d4ef3] hover:bg-[#3442d1] text-white py-4 rounded-2xl font-bold mt-10 mb-4 transition-all active:scale-[0.98] shadow-lg shadow-blue-900/20"
@@ -92,6 +113,7 @@ export default function Login() {
           Log In
         </button>
 
+        {/* Link redirecting to Sign Up registration page */}
         <p className="text-center text-sm mt-8 text-gray-300">
           Don't have an account?{" "}
           <span
@@ -103,7 +125,7 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Footer Security Icons */}
+      {/* Footer Security Badges (Encrypted & Confidential) */}
       <div className="mt-8 flex gap-8 text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold">
         <div className="flex items-center gap-2">
           <FiShield className="text-xs" /> Encrypted
