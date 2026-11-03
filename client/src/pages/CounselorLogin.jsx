@@ -30,11 +30,17 @@ import axios from "axios";
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const CounselorLogin = () => {
+  // Navigation hook for programmatic route redirection
   const navigate = useNavigate();
+  // State toggling between Login mode (true) and Create Account mode (false)
   const [isLogin, setIsLogin] = useState(true);
+  // State toggling password visibility between masked and plain text
   const [showPassword, setShowPassword] = useState(false);
+  // Loading state flag while processing authentication requests
   const [loading, setLoading] = useState(false);
+  // Error message state displayed in the alert banner
   const [error, setError] = useState("");
+  // Form input state holding counselor credentials and profile info
   const [formData, setFormData] = useState({
     name: "",
     title: "",
@@ -42,14 +48,15 @@ const CounselorLogin = () => {
     password: "",
   });
 
+  // Updates form state dynamically on user typing and clears prior errors
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
   };
 
-  // Converts a Firebase / Axios / generic error into a readable message.
+  // Converts Firebase, Axios, or generic error objects into readable error strings
   const resolveErrorMessage = (err) => {
-    // Axios error with a response from the server (4xx/5xx)
+    // Axios error with response data from the backend server
     if (err?.response) {
       return (
         err.response.data?.msg ||
@@ -57,22 +64,25 @@ const CounselorLogin = () => {
         `Server error (${err.response.status}). Please try again.`
       );
     }
-    // Axios error with no response at all -> network/CORS/unreachable backend
+    // Network / unreachable server error with no response returned
     if (err?.request) {
       return "Could not reach the server. Please check your internet connection, or the server may be temporarily unavailable.";
     }
-    // Firebase Auth errors carry a "code" like auth/wrong-password
+    // Firebase Authentication error codes (strips standard 'Firebase:' prefix)
     if (err?.code) {
       return (err.message || "Authentication error.").replace(
         "Firebase: ",
         "",
       );
     }
+    // Generic fallback error message
     return err?.message || "Something went wrong. Please try again.";
   };
 
+  // Dispatches a password recovery email via Firebase Auth
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+    // Validate email is provided before sending reset link
     if (!formData.email) {
       setError(
         "Please enter your email address first to reset your password.",
@@ -82,30 +92,30 @@ const CounselorLogin = () => {
     setLoading(true);
     setError("");
     try {
+      // Send password reset email to counselor's work email
       await sendPasswordResetEmail(auth, formData.email);
       alert(`Password reset email sent to ${formData.email}.`);
     } catch (err) {
+      // Set resolved human-readable error message
       setError(resolveErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
+  // Handles form submission for both counselor Login and Account Registration
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    // Tracks a Firebase user created during THIS submit, so we can roll it
-    // back if the follow-up MongoDB save fails. Without this, a failed
-    // signup permanently "consumes" the email in Firebase Auth while
-    // leaving no counselor profile in the DB - the account becomes stuck
-    // (can't sign up again with that email, can't log in either).
+    // Variable to track newly created Firebase user for rollback in case MongoDB insertion fails
     let createdFirebaseUser = null;
 
     try {
       if (isLogin) {
-        // --- LOGIN LOGIC ---
+        // --- 1. COUNSELOR LOGIN FLOW ---
+        // Authenticate credentials against Firebase Authentication
         const userCredential = await signInWithEmailAndPassword(
           auth,
           formData.email,
@@ -113,10 +123,11 @@ const CounselorLogin = () => {
         );
         const user = userCredential.user;
 
-        // Fetch Profile from DB to check status
+        // Fetch counselor profile from MongoDB backend to verify account authorization
         const res = await axios.get(`${API_URL}/api/counselors`);
         const counselor = res.data.find((c) => c.uid === user.uid);
 
+        // Check if counselor record exists in database
         if (!counselor) {
           await signOut(auth);
           setError(
@@ -128,8 +139,9 @@ const CounselorLogin = () => {
           return;
         }
 
-        // SECURITY CHECK: Prevent login if not Verified
+        // SECURITY CHECK: Verify that admin has approved and marked account as Verified
         if (counselor.status !== "Verified") {
+          // Immediately sign out unapproved counselor
           await signOut(auth);
           if (counselor.status === "Pending") {
             setError(
@@ -142,9 +154,11 @@ const CounselorLogin = () => {
           return;
         }
 
+        // Redirect verified counselor to dashboard
         navigate("/CounselorDashboard");
       } else {
-        // --- SIGNUP LOGIC ---
+        // --- 2. COUNSELOR REGISTRATION FLOW ---
+        // Create user in Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           formData.email,
@@ -152,6 +166,7 @@ const CounselorLogin = () => {
         );
         createdFirebaseUser = userCredential.user;
 
+        // Build new counselor profile document for MongoDB storage
         const newCounselor = {
           uid: createdFirebaseUser.uid,
           name: formData.name,
@@ -162,31 +177,30 @@ const CounselorLogin = () => {
           description:
             "Dedicated professional ready to help students succeed.",
           role: "counselor",
+          // Initial status is Pending until verified by an Administrator
           status: "Pending",
         };
 
+        // Post new counselor profile to backend database
         await axios.post(`${API_URL}/api/counselors`, newCounselor);
 
-        // Success: sign out immediately and alert user
+        // Sign out immediately until an administrator approves the application
         await signOut(auth);
         alert(
           "Account created successfully! Please wait for admin verification before logging in.",
         );
+        // Switch back to Login tab and reset input values
         setIsLogin(true);
         setFormData({ name: "", title: "", email: "", password: "" });
       }
     } catch (err) {
       console.error(err);
 
-      // Rollback: if we created a Firebase Auth user in THIS attempt but
-      // the MongoDB profile save failed, delete the Firebase user so the
-      // email is free to try again instead of being permanently stuck.
+      // Rollback: If Firebase user was created but MongoDB profile post failed, delete Firebase user
       if (createdFirebaseUser) {
         try {
           await createdFirebaseUser.delete();
         } catch (rollbackErr) {
-          // If rollback itself fails (e.g. Firebase requires a recent
-          // login to delete), sign out at least, and warn clearly.
           console.error("Rollback failed to delete orphaned user:", rollbackErr);
           try {
             await signOut(auth);
@@ -201,6 +215,7 @@ const CounselorLogin = () => {
         }
       }
 
+      // Display resolved error message
       setError(resolveErrorMessage(err));
     } finally {
       setLoading(false);
@@ -208,7 +223,9 @@ const CounselorLogin = () => {
   };
 
   return (
+    // Outer page container with deep purple background
     <div className="min-h-screen bg-[#240046] flex flex-col font-sans text-slate-800">
+      {/* Top branding header bar */}
       <header className="px-6 py-4 bg-[#5a189a] border-b border-gray-100 relative z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -227,12 +244,15 @@ const CounselorLogin = () => {
         </div>
       </header>
 
+      {/* Main card center container */}
       <div className="flex-1 flex items-center justify-center p-4 md:p-8">
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-w-5xl w-full min-h-[600px]">
-          {/* Brand Info (Left) */}
+          {/* ================= LEFT SIDE: BRAND INFO & PERKS ================= */}
           <div className="md:w-1/2 bg-[#2C807F] p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden">
+            {/* Background ambient blur decorations */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full -ml-16 -mb-16 blur-3xl"></div>
+            {/* Portal mission headline */}
             <div className="relative z-10">
               <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-6">
                 Restoring balance through professional care.
@@ -243,7 +263,9 @@ const CounselorLogin = () => {
                 support.
               </p>
             </div>
+            {/* Security and compliance badges */}
             <div className="space-y-6 relative z-10 mt-12 hidden md:block">
+              {/* HIPAA compliance badge */}
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                   <Shield className="w-5 h-5 text-teal-100" />
@@ -255,6 +277,7 @@ const CounselorLogin = () => {
                   </p>
                 </div>
               </div>
+              {/* Scheduling feature badge */}
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-5 h-5 text-teal-100" />
@@ -269,8 +292,9 @@ const CounselorLogin = () => {
             </div>
           </div>
 
-          {/* Form (Right) */}
+          {/* ================= RIGHT SIDE: CREDENTIALS FORM ================= */}
           <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+            {/* Form title header */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-800 mb-2">
                 Professional Login and Registration
@@ -280,12 +304,14 @@ const CounselorLogin = () => {
               </p>
             </div>
 
+            {/* Error alert message banner */}
             {error && (
               <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg mb-4 border border-red-100">
                 {error}
               </div>
             )}
 
+            {/* Tab switch buttons between Login and Create Account */}
             <div className="bg-slate-100 p-1 rounded-xl flex mb-8">
               <button
                 onClick={() => setIsLogin(true)}
@@ -301,9 +327,12 @@ const CounselorLogin = () => {
               </button>
             </div>
 
+            {/* Main credentials form */}
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Conditional registration fields (Full Name and Title) */}
               {!isLogin && (
                 <div className="animate-in slide-in-from-top-4 fade-in duration-300 space-y-5">
+                  {/* Full Name field */}
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                       Full Name
@@ -321,6 +350,7 @@ const CounselorLogin = () => {
                       />
                     </div>
                   </div>
+                  {/* Professional title field */}
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                       Title
@@ -341,6 +371,7 @@ const CounselorLogin = () => {
                 </div>
               )}
 
+              {/* Work Email field */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Work Email
@@ -359,11 +390,13 @@ const CounselorLogin = () => {
                 </div>
               </div>
 
+              {/* Password field with forgot password action and visibility toggle */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
                     Password
                   </label>
+                  {/* Forgot password trigger (only visible in Login mode) */}
                   {isLogin && (
                     <button
                       type="button"
@@ -376,6 +409,7 @@ const CounselorLogin = () => {
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                  {/* Password text / masked input */}
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
@@ -385,6 +419,7 @@ const CounselorLogin = () => {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-12 text-slate-700 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                     required
                   />
+                  {/* Toggle password eye icon button */}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -399,6 +434,7 @@ const CounselorLogin = () => {
                 </div>
               </div>
 
+              {/* Submit button with loading spinner state */}
               <button
                 type="submit"
                 disabled={loading}
@@ -415,12 +451,14 @@ const CounselorLogin = () => {
               </button>
             </form>
 
+            {/* Compliance footer notice */}
             <div className="mt-8 pt-8 border-t border-slate-100 text-center">
               <p className="text-xs text-slate-400 leading-relaxed">
                 Authorized personnel only. By logging in, you agree to
                 MindNest's agreement.
               </p>
             </div>
+            {/* Link to navigate back to student site */}
             <div className="mt-4 text-center">
               <Link
                 to="/"
