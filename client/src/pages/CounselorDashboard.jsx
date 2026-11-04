@@ -22,7 +22,6 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 
 // --- Sidebar ---
 const Sidebar = ({ isOpen, toggleSidebar, user }) => {
-  // Get active route path
   const location = useLocation();
   // Navigation hook for redirection
   const navigate = useNavigate();
@@ -63,9 +62,8 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
 
       {/* Main sidebar container with slide-in animation on mobile */}
       <motion.aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#3c096c] border-r border-gray-100 flex flex-col transition-transform duration-300 ease-in-out transform ${
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
+        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-[#3c096c] border-r border-gray-100 flex flex-col transition-transform duration-300 ease-in-out transform ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}
       >
         {/* Brand logo and close button header */}
         <div className="p-6 flex items-center justify-between">
@@ -118,11 +116,10 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
                 key={index}
                 to={link.path}
                 // Apply active styling if current route matches
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
                     ? "bg-teal-50 text-[#240046]"
                     : "text-[#70e000] hover:bg-gray-50 hover:text-gray-800"
-                }`}
+                  }`}
               >
                 <link.icon size={20} />
                 {link.label}

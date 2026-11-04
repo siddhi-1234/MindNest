@@ -15,13 +15,16 @@ import {
 } from "lucide-react";
 
 const SleepTips = () => {
+  // === INTERACTIVE UI STATES ===
+  // Controls responsive mobile navigation drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Holds the currently selected guide object for display in the reading modal
+  const [activeArticle, setActiveArticle] = useState(null);
+  // Holds the ID of the video currently playing inline via YouTube iframe
+  const [playingVideo, setPlayingVideo] = useState(null);
 
-  // === INTERACTIVE STATES ===
-  const [activeArticle, setActiveArticle] = useState(null); // For reading guides
-  const [playingVideo, setPlayingVideo] = useState(null); // For playing videos
-
-  // === DATA: QUICK TIPS ===
+  // === STATIC DATA: QUICK SLEEP TIPS ===
+  // Actionable behavioral recommendations displayed as highlight tiles
   const quickTips = [
     {
       icon: Coffee,
@@ -53,7 +56,8 @@ const SleepTips = () => {
     },
   ];
 
-  // === DATA: SLEEP ARTICLES ===
+  // === STATIC DATA: SLEEP HYGIENE GUIDES & ARTICLES ===
+  // In-depth articles rendered inside the interactive modal reader
   const guides = [
     {
       id: 1,
@@ -142,7 +146,8 @@ const SleepTips = () => {
     },
   ];
 
-  // === DATA: RELAXATION TOOLS (VIDEOS) ===
+  // === STATIC DATA: RELAXATION TOOLS (VIDEOS & WHITE NOISE) ===
+  // YouTube media resources with duration and author information
   const tools = [
     {
       id: 1,
@@ -179,7 +184,7 @@ const SleepTips = () => {
       title: "15 Minute Healing Meditation Music",
       author: "Deep Breath",
       duration: "15:14",
-      embedId: "IaDWJbCGbX0", // Breathing technique ID
+      embedId: "IaDWJbCGbX0", // Healing meditation ID
       image: "https://img.youtube.com/vi/IaDWJbCGbX0/maxresdefault.jpg",
     },
     {
@@ -188,7 +193,7 @@ const SleepTips = () => {
       title: "5 Minute Meditation Before Sleep",
       author: "Great Meditation",
       duration: "5:27",
-      embedId: "2K4T9HmEhWE", // Breathing technique ID
+      embedId: "2K4T9HmEhWE", // Quick bedtime meditation ID
       image: "https://img.youtube.com/vi/2K4T9HmEhWE/maxresdefault.jpg",
     },
     {
@@ -197,23 +202,25 @@ const SleepTips = () => {
       title: "Soothing Flute Meditation Music",
       author: "Creative Mind",
       duration: "14:22",
-      embedId: "ahx-j9bi_cA", // Breathing technique ID
+      embedId: "ahx-j9bi_cA", // Ambient flute music ID
       image: "https://img.youtube.com/vi/ahx-j9bi_cA/maxresdefault.jpg",
     },
   ];
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans relative">
-      {/* ================= ARTICLE MODAL ================= */}
+      {/* ================= FULL-SCREEN ARTICLE MODAL ================= */}
       {activeArticle && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#1E293B] w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-700">
+            {/* Modal Close Button */}
             <button
               onClick={() => setActiveArticle(null)}
               className="absolute top-4 right-4 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition"
             >
               <X className="w-5 h-5" />
             </button>
+            {/* Modal Header with Article Image Banner */}
             <div className="h-64 shrink-0 relative">
               <img
                 src={activeArticle.image}
@@ -230,6 +237,7 @@ const SleepTips = () => {
                 </h2>
               </div>
             </div>
+            {/* Modal Body: Scrollable HTML Content */}
             <div className="p-6 md:p-8 overflow-y-auto text-gray-300 leading-relaxed text-lg">
               <div
                 dangerouslySetInnerHTML={{ __html: activeArticle.content }}
@@ -239,8 +247,9 @@ const SleepTips = () => {
         </div>
       )}
 
-      {/* ================= NAVBAR ================= */}
+      {/* ================= STICKY TOP NAVBAR ================= */}
       <nav className="flex items-center justify-between px-4 md:px-8 py-4 bg-[#0F172A] border-b border-gray-800 sticky top-0 z-50">
+        {/* Brand Logo & Name */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -251,6 +260,7 @@ const SleepTips = () => {
             MindNest
           </h1>
         </div>
+        {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a href="/Dashboard" className="hover:text-white transition">
             Dashboard
@@ -265,6 +275,7 @@ const SleepTips = () => {
             Counselling
           </a>
         </div>
+        {/* Mobile Hamburger Menu Toggle Button */}
         <div className="flex items-center gap-4">
           <button
             className="md:hidden text-gray-300"
@@ -277,6 +288,7 @@ const SleepTips = () => {
             )}
           </button>
         </div>
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50">
             <a
@@ -307,10 +319,10 @@ const SleepTips = () => {
         )}
       </nav>
 
-      {/* ================= HERO SECTION ================= */}
+      {/* ================= HERO BANNER SECTION ================= */}
       <div className="bg-[#0F172A] py-12 md:py-16 px-4 md:px-8">
         <div className="max-w-7xl mx-auto bg-[#1E293B] rounded-3xl overflow-hidden border border-gray-700/50 shadow-2xl flex flex-col md:flex-row">
-          {/* Left Content */}
+          {/* Left Text & Callout */}
           <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6 w-max border border-blue-500/20">
               <Moon className="w-3 h-3 fill-current" /> Better Sleep
@@ -326,7 +338,7 @@ const SleepTips = () => {
             </p>
           </div>
 
-          {/* Right Image */}
+          {/* Right Thematic Image */}
           <div className="md:w-1/2 relative min-h-[300px]">
             <img
               src="https://images.unsplash.com/photo-1532009877282-3340270e0529?auto=format&fit=crop&w=1200&q=80"
@@ -341,22 +353,26 @@ const SleepTips = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-8 pb-16 space-y-16">
         {/* ================= QUICK TIPS SECTION ================= */}
         <section>
+          {/* Section Header */}
           <div className="flex items-center gap-2 mb-6">
             <Info className="w-5 h-5 text-blue-400" />
             <h2 className="text-2xl font-bold text-white">Quick Sleep Tips</h2>
           </div>
 
+          {/* Grid of Tip Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {quickTips.map((tip, index) => (
               <div
                 key={index}
                 className="bg-[#1E293B] p-6 rounded-2xl border border-gray-700 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group"
               >
+                {/* Tip Category Icon */}
                 <div
                   className={`w-12 h-12 rounded-xl ${tip.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition`}
                 >
                   <tip.icon className={`w-6 h-6 ${tip.color}`} />
                 </div>
+                {/* Tip Title and Description */}
                 <h3 className="text-lg font-bold text-white mb-2">
                   {tip.title}
                 </h3>
@@ -368,8 +384,9 @@ const SleepTips = () => {
           </div>
         </section>
 
-        {/* ================= ARTICLES SECTION ================= */}
+        {/* ================= ARTICLES & GUIDES SECTION ================= */}
         <section>
+          {/* Section Header */}
           <div className="flex justify-between items-end mb-6">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-blue-400" />
@@ -379,13 +396,16 @@ const SleepTips = () => {
             </div>
           </div>
 
+          {/* Grid of Guide Preview Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {guides.map((guide) => (
               <div
                 key={guide.id}
+                // Open full article in modal reader
                 onClick={() => setActiveArticle(guide)}
                 className="bg-[#1E293B] rounded-2xl p-6 border border-gray-700 hover:border-blue-500/50 transition cursor-pointer group flex flex-col sm:flex-row gap-6 items-center"
               >
+                {/* Thumbnail Image */}
                 <div className="w-full sm:w-32 h-32 shrink-0 rounded-xl overflow-hidden shadow-lg">
                   <img
                     src={guide.image}
@@ -393,6 +413,7 @@ const SleepTips = () => {
                     className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                   />
                 </div>
+                {/* Guide Meta, Title, and Excerpt */}
                 <div className="flex-1">
                   <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                     {guide.category} <span className="text-gray-600">•</span>{" "}
@@ -415,18 +436,22 @@ const SleepTips = () => {
           </div>
         </section>
 
-        {/* ================= VIDEOS SECTION ================= */}
+        {/* ================= RELAXATION TOOLS (AUDIO/VIDEO) SECTION ================= */}
         <section>
+          {/* Section Header */}
           <div className="flex items-center gap-2 mb-6">
             <Headphones className="w-5 h-5 text-blue-400" />
             <h2 className="text-2xl font-bold text-white">Relaxation Tools</h2>
           </div>
 
+          {/* Grid of Video/Audio Media Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {tools.map((tool) => (
               <div key={tool.id} className="group cursor-pointer">
+                {/* Video Container: Either an autoplaying YouTube iframe or preview thumbnail */}
                 <div className="relative rounded-2xl overflow-hidden aspect-video mb-4 border border-gray-700 shadow-lg bg-black">
                   {playingVideo === tool.id ? (
+                    // Embedded YouTube player when active
                     <iframe
                       width="100%"
                       height="100%"
@@ -438,6 +463,7 @@ const SleepTips = () => {
                       className="w-full h-full"
                     ></iframe>
                   ) : (
+                    // Thumbnail with Play button overlay
                     <div
                       onClick={() => setPlayingVideo(tool.id)}
                       className="w-full h-full relative"
@@ -447,17 +473,20 @@ const SleepTips = () => {
                         alt={tool.title}
                         className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"
                       />
+                      {/* Play Button Overlay */}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition">
                         <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:scale-110 transition duration-300">
                           <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                         </div>
                       </div>
+                      {/* Duration Tag */}
                       <span className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded font-mono border border-white/10">
                         {tool.duration}
                       </span>
                     </div>
                   )}
                 </div>
+                {/* Media Title and Author Metadata */}
                 <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition mb-1">
                   {tool.title}
                 </h3>
