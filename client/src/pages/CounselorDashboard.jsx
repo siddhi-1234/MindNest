@@ -34,7 +34,6 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
     { icon: Settings, label: "Settings", path: "/SettingsPage" },
   ];
 
-  // Handler to log out the counselor
   const handleLogout = async () => {
     try {
       // Sign out current counselor session from Firebase
