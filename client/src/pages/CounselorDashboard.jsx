@@ -37,7 +37,7 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
   // Handler to log out the counselor
   const handleLogout = async () => {
     try {
-      // Sign out current counselor session from Firebase
+
       await signOut(auth);
       // Redirect to counselor login page
       navigate("/counselor/login");
