@@ -24,7 +24,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 const Sidebar = ({ isOpen, toggleSidebar, user }) => {
   // Get active route path
   const location = useLocation();
-  // Navigation hook for redirection
+
   const navigate = useNavigate();
 
   // Navigation menu items definition
@@ -118,8 +118,8 @@ const Sidebar = ({ isOpen, toggleSidebar, user }) => {
                 to={link.path}
                 // Apply active styling if current route matches
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
-                    ? "bg-teal-50 text-[#240046]"
-                    : "text-[#70e000] hover:bg-gray-50 hover:text-gray-800"
+                  ? "bg-teal-50 text-[#240046]"
+                  : "text-[#70e000] hover:bg-gray-50 hover:text-gray-800"
                   }`}
               >
                 <link.icon size={20} />
