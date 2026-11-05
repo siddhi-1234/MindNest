@@ -22,7 +22,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 
 // --- Sidebar ---
 const Sidebar = ({ isOpen, toggleSidebar, user }) => {
-
+  // Get active route path
   const location = useLocation();
   // Navigation hook for redirection
   const navigate = useNavigate();
