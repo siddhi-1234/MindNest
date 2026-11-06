@@ -11,36 +11,57 @@ import {
   Trees, // Icon for Nature section
 } from "lucide-react";
 
+/**
+ * StressRelief Component
+ * Interactive stress management portal providing students with guided breathing exercises,
+ * educational burnout articles, nature soundscapes/videos, and practical stress-relief tips.
+ */
 const StressRelief = () => {
+
+  // Controls responsive mobile navigation drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Navigation dispatcher for route transitions
   const navigate = useNavigate();
+  // Holds currently selected article object for the reading modal
   const [activeArticle, setActiveArticle] = useState(null);
+  // Controls visibility of full-screen guided breathing exercise modal
   const [isBreathingModalOpen, setIsBreathingModalOpen] = useState(false);
+  // Displays active breathing instruction text in the rhythm animation
   const [breathText, setBreathText] = useState("Ready?");
 
-  // === NEW: VIDEO PLAYER STATE ===
+  // Holds ID of currently active video playing inline via YouTube iframe
   const [playingVideo, setPlayingVideo] = useState(null);
 
-  // === BREATHING LOGIC ===
+  // === GUIDED BREATHING LOGIC & TIMER CYCLE ===
   useEffect(() => {
     let interval;
     if (isBreathingModalOpen) {
+      // Initialize cycle with inhalation prompt
       setBreathText("Inhale...");
+
+      // 12-second relaxation breathing loop: 4s inhale, 4s hold, 4s exhale
       const cycle = () => {
         setTimeout(() => setBreathText("Hold..."), 4000);
         setTimeout(() => setBreathText("Exhale..."), 8000);
         setTimeout(() => setBreathText("Inhale..."), 12000);
       };
+
+      // Run first cycle immediately
       cycle();
+      // Repeat the 12-second cycle continuously while modal is open
       interval = setInterval(cycle, 12000);
     } else {
+      // Reset breathing prompt when modal closes
       setBreathText("Ready?");
       clearInterval(interval);
     }
+
+    // Cleanup interval timers when modal closes or unmounts
     return () => clearInterval(interval);
   }, [isBreathingModalOpen]);
 
-  // === DATA: ARTICLES ===
+  // === STATIC DATA: EDUCATIONAL ARTICLES ===
+  // In-depth articles rendered inside the interactive modal reader
   const articles = [
     {
       id: 1,
@@ -82,7 +103,8 @@ const StressRelief = () => {
     },
   ];
 
-  // === DATA: NATURE VIDEOS ===
+  // === STATIC DATA: CALMING NATURE VIDEOS ===
+  // Curated nature soundscapes and ambient relaxation media
   const natureVideos = [
     {
       id: 1,
@@ -104,19 +126,20 @@ const StressRelief = () => {
       id: 3,
       title: "Beautiful Nature Water fall sound",
       duration: "1:00:00",
-      embedId: "xRcWlA1I9z0", // Ocean waves
+      embedId: "xRcWlA1I9z0", // Waterfall sounds
       image: "https://img.youtube.com/vi/xRcWlA1I9z0/maxresdefault.jpg",
     },
     {
       id: 4,
       title: "Forest Sounds",
       duration: "28:03",
-      embedId: "eNUpTV9BGac", // Ocean waves
+      embedId: "eNUpTV9BGac", // Ambient forest sounds
       image: "https://img.youtube.com/vi/eNUpTV9BGac/maxresdefault.jpg",
     },
   ];
 
-  // === DATA: SAVED TOOLS ===
+  // === STATIC DATA: SHORT STRESS-FREE TIPS (TOOLKIT) ===
+  // Actionable behavioral strategies for academic and lifestyle balance
   const savedTools = [
     { title: "Time & Boundaries", desc: "Setting limits on study hours." },
     { title: "The Pomodoro Technique", desc: "25m work / 5m break." },
@@ -136,23 +159,27 @@ const StressRelief = () => {
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans relative">
-      {/* ================= BREATHING MODAL ================= */}
+      {/* ================= GUIDED BREATHING EXERCISE MODAL ================= */}
       {isBreathingModalOpen && (
         <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md flex justify-center items-center p-4 animate-in fade-in duration-300">
           <div className="relative flex flex-col items-center">
+            {/* Modal Exit Button */}
             <button
               onClick={() => setIsBreathingModalOpen(false)}
               className="absolute -top-16 right-0 text-gray-400 hover:text-white"
             >
               <X className="w-8 h-8" />
             </button>
+            {/* Animated Pulsing Breathing Orb */}
             <div className="relative flex items-center justify-center w-72 h-72 md:w-96 md:h-96 rounded-full border-4 border-blue-500/20 animate-pulse">
               <div className="w-56 h-56 md:w-72 md:h-72 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-[0_0_60px_rgba(59,130,246,0.6)] flex items-center justify-center">
+                {/* Dynamically updated breathing instruction */}
                 <span className="text-3xl font-bold text-white tracking-widest">
                   {breathText}
                 </span>
               </div>
             </div>
+            {/* Mindful prompt under breathing orb */}
             <p className="mt-8 text-xl text-blue-200 font-medium">
               Follow the rhythm. Relax your shoulders.
             </p>
@@ -160,16 +187,18 @@ const StressRelief = () => {
         </div>
       )}
 
-      {/* ================= ARTICLE READER MODAL ================= */}
+      {/* ================= FULL-SCREEN ARTICLE READER MODAL ================= */}
       {activeArticle && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#1E293B] w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-700">
+            {/* Close article modal button */}
             <button
               onClick={() => setActiveArticle(null)}
               className="absolute top-4 right-4 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition"
             >
               <X className="w-5 h-5" />
             </button>
+            {/* Article Image Banner with Gradient Overlay */}
             <div className="h-64 shrink-0 relative">
               <img
                 src={activeArticle.image}
@@ -186,6 +215,7 @@ const StressRelief = () => {
                 </h2>
               </div>
             </div>
+            {/* Scrollable Article Body formatted with HTML */}
             <div className="p-6 md:p-8 overflow-y-auto text-gray-300 leading-relaxed text-lg">
               <div
                 dangerouslySetInnerHTML={{ __html: activeArticle.content }}
@@ -195,8 +225,9 @@ const StressRelief = () => {
         </div>
       )}
 
-      {/* ================= NAVBAR ================= */}
+      {/* ================= STICKY TOP NAVIGATION BAR ================= */}
       <nav className="flex items-center justify-between px-4 md:px-8 py-4 bg-[#0F172A] border-b border-gray-800 sticky top-0 z-50">
+        {/* Brand Logo & Name */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -207,6 +238,7 @@ const StressRelief = () => {
             MindNest
           </h1>
         </div>
+        {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a href="/Dashboard" className="hover:text-white transition">
             Dashboard
@@ -221,6 +253,7 @@ const StressRelief = () => {
             Counselling
           </a>
         </div>
+        {/* Quick Action: Get Help Now & Mobile Menu Hamburger */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/Counselling")}
@@ -239,6 +272,7 @@ const StressRelief = () => {
             )}
           </button>
         </div>
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50">
             <a
@@ -269,9 +303,10 @@ const StressRelief = () => {
         )}
       </nav>
 
-      {/* ================= HERO SECTION ================= */}
+      {/* ================= HERO BANNER SECTION ================= */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 pt-8 md:pt-12">
         <div className="bg-[#1E293B] rounded-3xl overflow-hidden border border-gray-700/50 shadow-2xl flex flex-col md:flex-row">
+          {/* Left Text Callout & Start Breathing Button */}
           <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center animate-in slide-in-from-left duration-700">
             <div className="inline-block px-3 py-1 rounded-md bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6 w-max border border-blue-500/20">
               Stress Management
@@ -286,6 +321,7 @@ const StressRelief = () => {
               balance.
             </p>
             <div className="flex gap-4">
+              {/* Button triggering the Guided Breathing Modal */}
               <button
                 onClick={() => setIsBreathingModalOpen(true)}
                 className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold transition shadow-lg shadow-blue-600/20 flex items-center gap-2"
@@ -294,6 +330,7 @@ const StressRelief = () => {
               </button>
             </div>
           </div>
+          {/* Right Thematic Image */}
           <div className="md:w-1/2 relative min-h-[300px] animate-in fade-in duration-1000">
             <img
               src="https://st2.depositphotos.com/3501059/5476/i/450/depositphotos_54765917-stress-free-zone-sign.jpg"
@@ -305,10 +342,10 @@ const StressRelief = () => {
         </div>
       </div>
 
-      {/* ================= CONTENT GRID ================= */}
+      {/* ================= CONTENT MAIN GRID ================= */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* === LEFT COLUMN (Col-8) === */}
+          {/* === LEFT COLUMN (Col-8): Articles & Nature Videos === */}
           <div className="lg:col-span-8 space-y-10">
             {/* 1. Understanding Stress Section */}
             <section>
@@ -318,13 +355,16 @@ const StressRelief = () => {
                   Stress
                 </h2>
               </div>
+              {/* Grid of Article Preview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {articles.map((article) => (
                   <div
                     key={article.id}
+                    // Open full article in reader modal
                     onClick={() => setActiveArticle(article)}
                     className="bg-[#1E293B] rounded-2xl overflow-hidden border border-gray-700 hover:border-blue-500/50 transition group cursor-pointer flex flex-col h-full"
                   >
+                    {/* Article Thumbnail */}
                     <div className="h-48 overflow-hidden relative">
                       <img
                         src={article.image}
@@ -332,6 +372,7 @@ const StressRelief = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                       />
                     </div>
+                    {/* Article Details */}
                     <div className="p-6 flex flex-col flex-1">
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">
@@ -356,7 +397,7 @@ const StressRelief = () => {
               </div>
             </section>
 
-            {/* 2. NEW SECTION: Nature for Stress Relief */}
+            {/* 2. Nature for Stress Relief Section (Video Audio Resources) */}
             <section>
               <div className="flex justify-between items-end mb-6">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -364,11 +405,14 @@ const StressRelief = () => {
                   Relief
                 </h2>
               </div>
+              {/* Grid of Nature Soundscape Video Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {natureVideos.map((video) => (
                   <div key={video.id} className="group cursor-pointer">
+                    {/* Video Container: Either an autoplaying YouTube iframe or preview thumbnail */}
                     <div className="relative rounded-xl overflow-hidden aspect-video mb-3 border border-gray-700 shadow-lg bg-black">
                       {playingVideo === video.id ? (
+                        // Embedded YouTube player when active
                         <iframe
                           width="100%"
                           height="100%"
@@ -379,6 +423,7 @@ const StressRelief = () => {
                           allowFullScreen
                         ></iframe>
                       ) : (
+                        // Preview thumbnail with Play trigger
                         <div
                           onClick={() => setPlayingVideo(video.id)}
                           className="w-full h-full relative"
@@ -388,17 +433,20 @@ const StressRelief = () => {
                             alt={video.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80 group-hover:opacity-100"
                           />
+                          {/* Play Button Overlay */}
                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition">
                             <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:scale-110 transition duration-300">
                               <Play className="w-6 h-6 text-white fill-current ml-1" />
                             </div>
                           </div>
+                          {/* Duration Tag */}
                           <span className="absolute bottom-2 right-2 bg-black/70 text-xs px-2 py-1 rounded text-white font-mono">
                             {video.duration}
                           </span>
                         </div>
                       )}
                     </div>
+                    {/* Video Title */}
                     <h3 className="font-bold text-lg text-gray-100 group-hover:text-blue-400 transition">
                       {video.title}
                     </h3>
@@ -408,15 +456,17 @@ const StressRelief = () => {
             </section>
           </div>
 
-          {/* === RIGHT COLUMN: TOOLKIT (Col-4) === */}
+          {/* === RIGHT COLUMN: TOOLKIT SIDEBAR (Col-4) === */}
           <div className="lg:col-span-4 space-y-8">
             <div className="bg-[#FFF8F0] rounded-3xl p-6 border border-gray-200 sticky top-24">
+              {/* Toolkit Card Header */}
               <div className="flex items-center gap-3 mb-4 text-gray-800">
                 <div className="bg-yellow-500/20 p-2 rounded-lg text-yellow-700">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-lg">Short Stress Free Tips</h3>
               </div>
+              {/* List of Practical Habit Tips */}
               <div className="space-y-4">
                 {savedTools.map((tool, i) => (
                   <div
@@ -440,6 +490,7 @@ const StressRelief = () => {
         </div>
       </div>
 
+      {/* Footer */}
       <footer className="border-t border-gray-800 py-8 text-center text-gray-500 text-xs md:text-sm px-4 mt-12">
         <p>&copy; 2023 MindNest. All rights reserved.</p>
       </footer>
