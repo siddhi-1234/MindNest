@@ -11,14 +11,17 @@ import {
 } from "lucide-react";
 
 const TipsForHealth = () => {
+  // Controls responsive mobile navigation drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // === NEW: ARTICLE MODAL STATE ===
+  // Holds currently selected article object for reading inside the modal
   const [activeArticle, setActiveArticle] = useState(null);
 
-  // === NEW: VIDEO STATE ===
+  // Holds ID of currently active video playing inline via YouTube iframe
   const [playingVideo, setPlayingVideo] = useState(null);
 
+  // === STATIC DATA: FEATURED ARTICLE ===
+  // Highlighted long-form guide on exam nutrition with rich HTML body
   const featuredArticle = {
     id: "feat-1",
     tag: "NUTRITION",
@@ -46,6 +49,8 @@ const TipsForHealth = () => {
     `,
   };
 
+  // === STATIC DATA: HEALTH & LIFESTYLE GUIDES ===
+  // Categorized wellness articles displayed in the guides grid
   const guides = [
     {
       id: 1,
@@ -107,6 +112,8 @@ const TipsForHealth = () => {
     },
   ];
 
+  // === STATIC DATA: QUICK ENERGY BOOSTERS ===
+  // Micro-habits for study fatigue and physical wellness
   const energyBoosters = [
     {
       title: "The 20-20-20 Rule",
@@ -122,7 +129,8 @@ const TipsForHealth = () => {
     },
   ];
 
-  // === UPDATED VIDEO DATA WITH YOUTUBE IDs ===
+  // === STATIC DATA: INTERACTIVE VIDEO TUTORIALS ===
+  // YouTube video tutorials on nutrition and mindfulness
   const videos = [
     {
       id: 1,
@@ -144,7 +152,7 @@ const TipsForHealth = () => {
       id: 3,
       title: "Quick Healthy Salads",
       duration: "3:55",
-      embedId: "Qb5Amsjdw5Q", // YouTube ID for Healthy Snacks
+      embedId: "Qb5Amsjdw5Q", // YouTube ID for Healthy Salads
       image:
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR18wvA_qA_5fxq4JA-94F5RAzyOfCU0FbY3g&s",
     },
@@ -152,7 +160,7 @@ const TipsForHealth = () => {
       id: 4,
       title: "5 Easy Smoothie Recipes",
       duration: "4:50",
-      embedId: "vFoSINFnFZo", // YouTube ID for Healthy Snacks
+      embedId: "vFoSINFnFZo", // YouTube ID for Smoothies
       image:
         "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQZYULc4wSaayUQwo79_g4t6Yv8UB7NXvrunw&s",
     },
@@ -160,11 +168,11 @@ const TipsForHealth = () => {
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-gray-200 font-sans relative">
-      {/* ================= ARTICLE READER MODAL ================= */}
+      {/* ================= FULL-SCREEN ARTICLE READER MODAL ================= */}
       {activeArticle && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#1E293B] w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-gray-700">
-            {/* Close Button */}
+            {/* Modal Close Button */}
             <button
               onClick={() => setActiveArticle(null)}
               className="absolute top-4 right-4 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition"
@@ -172,7 +180,7 @@ const TipsForHealth = () => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Header Image */}
+            {/* Modal Header Image & Article Banner */}
             <div className="h-64 shrink-0 relative">
               <img
                 src={activeArticle.image}
@@ -190,14 +198,14 @@ const TipsForHealth = () => {
               </div>
             </div>
 
-            {/* Scrollable Content */}
+            {/* Scrollable Article Body formatted with HTML */}
             <div className="p-6 md:p-8 overflow-y-auto text-gray-300 leading-relaxed text-lg">
               <div
                 dangerouslySetInnerHTML={{ __html: activeArticle.content }}
               />
             </div>
 
-            {/* Footer */}
+            {/* Modal Footer Controls */}
             <div className="p-4 border-t border-gray-700 bg-[#0F172A] flex justify-between items-center text-sm text-gray-500">
               <span>Wellness Team</span>
               <button
@@ -211,8 +219,9 @@ const TipsForHealth = () => {
         </div>
       )}
 
-      {/* ================= NAVBAR ================= */}
+      {/* ================= STICKY TOP NAVIGATION BAR ================= */}
       <nav className="flex items-center justify-between px-4 md:px-8 py-4 bg-[#0F172A] border-b border-gray-800 sticky top-0 z-50">
+        {/* Brand Logo & Name */}
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -223,6 +232,7 @@ const TipsForHealth = () => {
             MindNest
           </h1>
         </div>
+        {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
           <a href="/Dashboard" className="hover:text-white transition">
             Dashboard
@@ -237,6 +247,7 @@ const TipsForHealth = () => {
             Counselling
           </a>
         </div>
+        {/* Mobile Hamburger Drawer Toggle Button */}
         <div className="flex items-center gap-4">
           <button
             className="md:hidden text-gray-300"
@@ -249,6 +260,7 @@ const TipsForHealth = () => {
             )}
           </button>
         </div>
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#1E293B] border-b border-gray-700 md:hidden flex flex-col shadow-xl z-50">
             <a
@@ -279,7 +291,7 @@ const TipsForHealth = () => {
         )}
       </nav>
 
-      {/* ================= HERO SECTION ================= */}
+      {/* ================= HERO HEADER BANNER ================= */}
       <div className="relative bg-gradient-to-b from-[#1e293b] to-[#0F172A] py-16 px-4 md:px-6 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 glow-pulse">
           Nourish Your Mind & Body
@@ -292,9 +304,9 @@ const TipsForHealth = () => {
 
       {/* ================= MAIN CONTENT GRID ================= */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* === LEFT COLUMN (Articles) === */}
+        {/* === LEFT COLUMN: Articles & Guides (Col-8) === */}
         <div className="lg:col-span-8 space-y-12">
-          {/* Featured Article */}
+          {/* 1. Featured Article Card */}
           <section>
             <div className="flex justify-between items-end mb-6">
               <h2 className="text-2xl font-bold text-white">
@@ -302,7 +314,7 @@ const TipsForHealth = () => {
               </h2>
             </div>
 
-            {/* CLICKABLE FEATURED ARTICLE */}
+            {/* Clickable Featured Article Card opening Reader Modal */}
             <div
               onClick={() => setActiveArticle(featuredArticle)}
               className="bg-[#1E293B] rounded-2xl overflow-hidden border border-gray-700 hover:border-blue-500/50 transition group flex flex-col md:flex-row cursor-pointer"
@@ -336,7 +348,7 @@ const TipsForHealth = () => {
             </div>
           </section>
 
-          {/* Latest Guides Grid */}
+          {/* 2. Latest Guides 2-Column Grid */}
           <section>
             <h2 className="text-2xl font-bold text-white mb-6">
               Latest Guides
@@ -348,6 +360,7 @@ const TipsForHealth = () => {
                   onClick={() => setActiveArticle(guide)}
                   className="bg-[#1E293B] rounded-2xl overflow-hidden border border-gray-700 hover:border-blue-500/50 transition group flex flex-col h-full cursor-pointer"
                 >
+                  {/* Thumbnail Image with Bookmark Icon */}
                   <div className="h-48 overflow-hidden relative">
                     <img
                       src={guide.image}
@@ -358,6 +371,7 @@ const TipsForHealth = () => {
                       <Bookmark className="w-4 h-4 text-white" />
                     </div>
                   </div>
+                  {/* Guide Tag, Title, and Description */}
                   <div className="p-6 flex flex-col flex-1">
                     <span className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
                       {guide.tag}
@@ -378,9 +392,9 @@ const TipsForHealth = () => {
           </section>
         </div>
 
-        {/* === RIGHT COLUMN (Sidebar Widgets) === */}
+        {/* === RIGHT COLUMN: Sidebar Widgets (Col-4) === */}
         <div className="lg:col-span-4 space-y-8">
-          {/* Energy Boosters Widget */}
+          {/* 1. Energy Boosters Habit Card */}
           <div className="bg-gradient-to-br from-blue-900/20 to-[#1E293B] rounded-2xl p-6 border border-blue-500/30">
             <div className="flex items-center gap-3 mb-6">
               <div className="bg-blue-600 p-2 rounded-lg text-white">
@@ -389,6 +403,7 @@ const TipsForHealth = () => {
               <h3 className="font-bold text-white text-lg">Energy Boosters</h3>
             </div>
 
+            {/* List of Energy micro-habits */}
             <div className="space-y-4">
               {energyBoosters.map((item, i) => (
                 <div key={i} className="flex gap-3">
@@ -408,7 +423,7 @@ const TipsForHealth = () => {
             </div>
           </div>
 
-          {/* Watch & Learn Widget (UPDATED TO BE INTERACTIVE) */}
+          {/* 2. Watch & Learn Interactive Video Widget */}
           <div className="bg-[#1E293B] rounded-2xl p-6 border border-gray-700">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-white text-lg">Watch & Learn</h3>
@@ -420,7 +435,7 @@ const TipsForHealth = () => {
                   key={video.id}
                   className="group cursor-pointer relative rounded-xl overflow-hidden aspect-video bg-black"
                 >
-                  {/* Conditional Rendering: Show Iframe if playing, else show Image */}
+                  {/* Inline Autoplaying YouTube Iframe or Thumbnail Trigger */}
                   {playingVideo === video.id ? (
                     <iframe
                       width="100%"
@@ -442,11 +457,13 @@ const TipsForHealth = () => {
                         alt={video.title}
                         className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"
                       />
+                      {/* Play Button Overlay */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition">
                           <Play className="w-4 h-4 text-white fill-current ml-0.5" />
                         </div>
                       </div>
+                      {/* Video Title and Duration Overlay */}
                       <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black/90 to-transparent">
                         <h4 className="text-white text-sm font-bold line-clamp-1">
                           {video.title}
