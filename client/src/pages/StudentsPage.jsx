@@ -17,7 +17,7 @@ import {
   AlertCircle,
   Mail,
   Send,
-  ChevronLeft, // ✅ Added ChevronLeft icon
+  ChevronLeft,
 } from "lucide-react";
 import {
   BarChart,
@@ -32,6 +32,7 @@ import { Link } from "react-router-dom";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
+// Predefined hourly consultation slots available for scheduling
 const STANDARD_TIME_SLOTS = [
   "09:00 AM",
   "10:00 AM",
@@ -42,13 +43,21 @@ const STANDARD_TIME_SLOTS = [
   "04:00 PM",
 ];
 
+
+/**
+ * ScheduleModal Component
+ * Modal dialog enabling counselors to book follow-up consultations with students.
+ */
 const ScheduleModal = ({ isOpen, onClose, onSchedule, studentName }) => {
+  // Input states for selected session date and standard time slot
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Return nothing if modal is closed
   if (!isOpen) return null;
 
+  // Validates inputs and delegates appointment creation to parent callback
   const handleSubmit = async () => {
     if (!date || !time) return alert("Please select date and time");
     setLoading(true);
@@ -58,12 +67,15 @@ const ScheduleModal = ({ isOpen, onClose, onSchedule, studentName }) => {
   };
 
   return (
+    // Backdrop overlay
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      {/* Modal Dialog Card */}
       <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
         <h3 className="text-lg font-bold text-gray-900 mb-4">
           Schedule Next Session for {studentName}
         </h3>
         <div className="space-y-4">
+          {/* Consultation Date Picker */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
               Date
@@ -75,6 +87,7 @@ const ScheduleModal = ({ isOpen, onClose, onSchedule, studentName }) => {
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
+          {/* Consultation Time Slot Selector */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
               Time
@@ -93,6 +106,7 @@ const ScheduleModal = ({ isOpen, onClose, onSchedule, studentName }) => {
             </select>
           </div>
         </div>
+        {/* Modal Action Controls */}
         <div className="flex justify-end gap-3 mt-8">
           <button
             onClick={onClose}
@@ -113,17 +127,24 @@ const ScheduleModal = ({ isOpen, onClose, onSchedule, studentName }) => {
   );
 };
 
+/**
+ * SidebarItem Component
+ * Single student case preview item rendered in the Active Cases sidebar list.
+ */
 const SidebarItem = ({ student, isSelected, onClick }) => (
   <div
+    // Select this student on click
     onClick={() => onClick(student)}
     className={`flex items-start gap-3 p-4 border-b border-white/10 cursor-pointer transition-colors hover:bg-white/5 ${isSelected ? "bg-white/20 border-l-4 border-l-white" : ""}`}
   >
+    {/* Student Avatar */}
     <img
       src={student.image || "https://i.pravatar.cc/150?img=12"}
       alt={student.name}
       className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
     />
     <div className="flex-1 min-w-0">
+      {/* Student Name and Last Appointment Date */}
       <div className="flex justify-between items-baseline mb-1">
         <h4 className="text-sm font-bold truncate text-white">
           {student.name}
@@ -132,9 +153,11 @@ const SidebarItem = ({ student, isSelected, onClick }) => (
           {student.lastAppointmentDate || "New"}
         </span>
       </div>
+      {/* Student Concern Summary */}
       <p className="text-xs text-gray-300 truncate mb-2">
         {student.concern || "General Checkup"}
       </p>
+      {/* Appointment Status Badge (confirmed, cancelled, pending) */}
       <span
         className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold inline-block ${student.status === "confirmed" ? "bg-green-500/20 text-green-300 border border-green-500/30" : student.status === "cancelled" ? "bg-red-500/20 text-red-300 border border-red-500/30" : "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"}`}
       >
@@ -143,14 +166,21 @@ const SidebarItem = ({ student, isSelected, onClick }) => (
     </div>
   </div>
 );
+
+/**
+ * MoodChartWidget Component
+ * Visualizes 14-day student mood history using a color-coded Recharts BarChart.
+ */
 const MoodChartWidget = ({ moodData }) => (
   <div className="bg-[#d8e2dc] p-6 rounded-2xl border border-gray-100 shadow-sm">
     <div className="flex justify-between items-center mb-6">
       <h3 className="font-bold text-gray-800">Mood Trends (Last 14 Days)</h3>
     </div>
     <div className="h-48">
+      {/* Responsive chart container */}
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={moodData} barSize={32}>
+          {/* Day-of-month X-Axis */}
           <XAxis
             dataKey="date"
             axisLine={false}
@@ -159,6 +189,7 @@ const MoodChartWidget = ({ moodData }) => (
             dy={10}
             tickFormatter={(date) => new Date(date).getDate()}
           />
+          {/* Interactive Tooltip displaying exact mood score */}
           <Tooltip
             cursor={{ fill: "#F3F4F6" }}
             contentStyle={{
@@ -167,16 +198,17 @@ const MoodChartWidget = ({ moodData }) => (
               boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
             }}
           />
+          {/* Mood score bars dynamically colored by severity */}
           <Bar dataKey="score" radius={[4, 4, 4, 4]}>
             {moodData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={
                   entry.score <= 2
-                    ? "#EF4444"
+                    ? "#EF4444" // Red: Low / distressed mood
                     : entry.score >= 4
-                      ? "#22D3EE"
-                      : "#FCD34D"
+                      ? "#22D3EE" // Cyan: Positive / happy mood
+                      : "#FCD34D" // Yellow: Neutral mood
                 }
               />
             ))}
@@ -187,6 +219,10 @@ const MoodChartWidget = ({ moodData }) => (
   </div>
 );
 
+/**
+ * NoteEditor Component
+ * Allows counselors to view, record, edit, and delete detailed observation notes for a student session.
+ */
 const NoteEditor = ({
   title,
   notes,
@@ -195,25 +231,29 @@ const NoteEditor = ({
   draftValue,
   setDraftValue,
 }) => {
+  // Tracks ID of note currently being modified, or null if drafting new
   const [editingId, setEditingId] = useState(null);
+
+  // Commits drafted note to list
   const handleSave = () => {
     if (!draftValue.trim()) return;
     onSave(draftValue, editingId);
     setDraftValue("");
     setEditingId(null);
   };
+
+  // Loads note content back into textarea for editing
   const handleEdit = (note) => {
     setDraftValue(note.text);
     setEditingId(note.id);
   };
+
   return (
     <div className="space-y-4 h-full flex flex-col">
-      {" "}
-      {/* Added flex col for full height usage */}
       <label className="block text-xs font-bold text-cyan-700 uppercase tracking-wider">
         {title}
       </label>
-      {/* Existing notes list - constrained height */}
+      {/* Existing Notes History List */}
       <div className="space-y-2 max-h-40 overflow-y-auto mb-2 pr-2 shrink-0">
         {notes.map((note) => (
           <div
@@ -228,6 +268,7 @@ const NoteEditor = ({
                 {new Date(note.date).toLocaleString()}
               </p>
             </div>
+            {/* Note Edit and Delete Actions */}
             <div className="flex gap-1 ml-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleEdit(note)}
@@ -245,14 +286,15 @@ const NoteEditor = ({
           </div>
         ))}
       </div>
-      {/* Enlarged Text Area */}
+      {/* Note Drafting Textarea */}
       <div className="relative flex-1">
         <textarea
           value={draftValue}
           onChange={(e) => setDraftValue(e.target.value)}
-          className="w-full h-full bg-white border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all resize-none min-h-[200px]" // ✅ Increased min-height
+          className="w-full h-full bg-white border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all resize-none min-h-[200px]"
           placeholder={`Type detailed ${title.toLowerCase()} here...`}
         ></textarea>
+        {/* Quick Save Note Button */}
         <button
           onClick={handleSave}
           className="absolute bottom-3 right-3 bg-cyan-600 text-white p-2 rounded-lg hover:bg-cyan-700 transition-colors shadow-sm"
@@ -265,11 +307,21 @@ const NoteEditor = ({
   );
 };
 
+/**
+ * AvailabilitySettings Component
+ * Allows counselors to manage open consultation time slots across a rolling 14-day schedule.
+ */
 const AvailabilitySettings = ({ counselorId }) => {
+  // Selected calendar date
   const [selectedDate, setSelectedDate] = useState(null);
+  // Generated list of the next 14 consecutive days
   const [generatedDates, setGeneratedDates] = useState([]);
+  // Map of date strings to available time slot arrays
   const [schedule, setSchedule] = useState({});
+  // Loading state during schedule updates
   const [loading, setLoading] = useState(false);
+
+  // Initialize rolling 14-day schedule
   useEffect(() => {
     const days = [];
     const today = new Date();
@@ -288,10 +340,13 @@ const AvailabilitySettings = ({ counselorId }) => {
     }
     setGeneratedDates(days);
     setSelectedDate(days[0].fullDate);
+    // Initialize mock schedule with all standard slots open
     const mockSchedule = {};
     days.forEach((d) => (mockSchedule[d.fullDate] = [...STANDARD_TIME_SLOTS]));
     setSchedule(mockSchedule);
   }, [counselorId]);
+
+  // Toggles availability of a specific time slot on the selected date
   const toggleSlot = (time) => {
     if (!selectedDate) return;
     setSchedule((prev) => {
@@ -302,6 +357,8 @@ const AvailabilitySettings = ({ counselorId }) => {
       return { ...prev, [selectedDate]: updatedSlots };
     });
   };
+
+  // Persists updated availability schedule to backend MongoDB database
   const saveAvailability = async () => {
     setLoading(true);
     try {
@@ -316,8 +373,10 @@ const AvailabilitySettings = ({ counselorId }) => {
       setLoading(false);
     }
   };
+
   return (
     <div className="p-4 md:p-6 h-full flex flex-col">
+      {/* Header and Save Action */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h3 className="text-lg font-bold text-white">My Availability</h3>
@@ -337,7 +396,10 @@ const AvailabilitySettings = ({ counselorId }) => {
           )}
         </button>
       </div>
+
+      {/* Date Selector & Slot Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
+        {/* Rolling 14-day Date Selection Column */}
         <div className="bg-white/10 p-4 rounded-2xl border border-white/20 overflow-y-auto max-h-64 md:max-h-full">
           <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3">
             Select Date
@@ -366,6 +428,8 @@ const AvailabilitySettings = ({ counselorId }) => {
             ))}
           </div>
         </div>
+
+        {/* Time Slot Toggle Buttons for Selected Date */}
         <div className="md:col-span-2 bg-white/10 border border-white/20 rounded-2xl p-6 flex flex-col">
           <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
             <Clock size={18} className="text-cyan-400" /> Time Slots for{" "}
@@ -385,6 +449,7 @@ const AvailabilitySettings = ({ counselorId }) => {
               );
             })}
           </div>
+          {/* Availability Legend */}
           <div className="mt-auto pt-6 text-xs text-gray-300 flex flex-wrap gap-4 justify-center">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-cyan-500 border-2 border-cyan-400"></div>{" "}
@@ -401,24 +466,41 @@ const AvailabilitySettings = ({ counselorId }) => {
   );
 };
 
+/**
+ * StudentsPage Component
+ * Main counselor patient management page: manages active student cases, reviews 14-day mood trends,
+ * records session observation notes, attaches & emails educational resources, and books appointments.
+ */
 const StudentsPage = () => {
-  // ✅ REMOVED TAB STATE (Only 'Session Notes' exists now)
+  // === STATE MANAGEMENT ===
+  // List of unique active student cases assigned to this counselor
   const [students, setStudents] = useState([]);
+  // Currently highlighted student object
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // ✅ Simplified drafts (Removed rx/plan)
+  // Draft session note text buffer
   const [drafts, setDrafts] = useState({ notes: "" });
 
+  // Mood history data for student mood chart
   const [studentMoods, setStudentMoods] = useState([]);
+  // Number of journal entries authored by the selected student
   const [journalCount, setJournalCount] = useState(0);
+  // Queries and notes left by the student during appointment booking
   const [studentQueries, setStudentQueries] = useState([]);
+  // Controls responsive mobile active cases drawer toggle
   const [isListOpen, setIsListOpen] = useState(false);
+  // Authenticated counselor user object
   const [currentUser, setCurrentUser] = useState(null);
+  // Controls follow-up scheduling modal display
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  // Counselor full name retrieved from database
   const [currentCounselorName, setCurrentCounselorName] = useState("");
+  // Saved observation notes for the current consultation
   const [sessionNotes, setSessionNotes] = useState([]);
+  // Attached digital resource files to email to student
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  // Monitor Firebase authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) setCurrentUser(user);
@@ -426,6 +508,7 @@ const StudentsPage = () => {
     return () => unsubscribe();
   }, []);
 
+  // Retrieve counselor profile to resolve counselor full name
   useEffect(() => {
     const fetchCounselorInfo = async () => {
       if (currentUser) {
@@ -441,20 +524,23 @@ const StudentsPage = () => {
     fetchCounselorInfo();
   }, [currentUser]);
 
+  // Fetches appointments and groups them into unique active student case records
   const fetchData = async () => {
     if (!currentUser) return;
     try {
       const apptRes = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
+      // Filter appointments belonging specifically to the logged-in counselor
       const myAppointments = apptRes.data.filter(
         (appt) => appt.counselorId === currentUser.uid,
       );
       const uniqueStudentsMap = new Map();
 
+      // Aggregate unique students and maintain the latest appointment metadata
       myAppointments.forEach((appt) => {
         if (
           !uniqueStudentsMap.has(appt.studentName) ||
           new Date(appt.createdAt) >
-            new Date(uniqueStudentsMap.get(appt.studentName).createdAt)
+          new Date(uniqueStudentsMap.get(appt.studentName).createdAt)
         ) {
           uniqueStudentsMap.set(appt.studentName, {
             id: appt.studentUid || appt._id,
@@ -470,12 +556,17 @@ const StudentsPage = () => {
             createdAt: appt.createdAt,
           });
         }
+        // Capture student notes and consultation requests
         if (appt.note)
           uniqueStudentsMap
             .get(appt.studentName)
             .queries.push({ text: appt.note, date: appt.date });
       });
+
+      // Update students list state
       setStudents(Array.from(uniqueStudentsMap.values()));
+
+      // Keep selected student in sync or default to the first student
       if (selectedStudent) {
         const updated = Array.from(uniqueStudentsMap.values()).find(
           (s) => s.name === selectedStudent.name,
@@ -489,12 +580,16 @@ const StudentsPage = () => {
     }
   };
 
+  // Re-fetch data whenever authenticated user changes
   useEffect(() => {
     fetchData();
   }, [currentUser]);
 
+  // Load selected student's metrics (journal count, mood chart, and queries)
   useEffect(() => {
     if (!selectedStudent) return;
+
+    // Fetch total journal entries written by this student
     const fetchStudentJournalCount = async () => {
       try {
         const res = await axios.get(
@@ -507,6 +602,7 @@ const StudentsPage = () => {
     };
     fetchStudentJournalCount();
 
+    // Generate deterministic 14-day mood timeline seeded from student's name
     const seed = selectedStudent.name
       .split("")
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -514,14 +610,17 @@ const StudentsPage = () => {
       date: new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000).toISOString(),
       score: ((seed + i * 3) % 5) + 1,
     }));
+
+    // Set student data states and clear buffers for a new session
     setStudentMoods(fixedMoods);
     setStudentQueries(selectedStudent.queries || []);
     setSessionNotes([]);
     setUploadedFiles([]);
-    setDrafts({ notes: "" }); // Reset Drafts
+    setDrafts({ notes: "" }); // Reset draft buffer
     setIsListOpen(false);
   }, [selectedStudent?.id]);
 
+  // Updates appointment status (e.g. "confirmed" or "cancelled")
   const updateStatus = async (status) => {
     if (!selectedStudent || !selectedStudent.appointmentId) return;
     try {
@@ -530,13 +629,14 @@ const StudentsPage = () => {
         status,
       });
       alert(`Request has been ${status === "confirmed" ? "accepted" : "rejected"} successfully.`);
-      await fetchData();
+      await fetchData(); // Refresh data to reflect status change
     } catch (err) {
       console.error("Error updating status:", err);
       alert("Failed to update status. Please try again.");
     }
   };
 
+  // Schedules follow-up appointment via modal submission
   const handleScheduleNext = async (date, time) => {
     if (!selectedStudent || !currentUser) return;
     try {
@@ -561,6 +661,7 @@ const StudentsPage = () => {
     }
   };
 
+  // Converts and sends a single attached resource directly to student's email
   const handleSendSingleFile = async (fileObj) => {
     if (!selectedStudent?.email) {
       alert("Student email missing.");
@@ -569,6 +670,7 @@ const StudentsPage = () => {
     if (!window.confirm(`Send "${fileObj.name}" now?`)) return;
 
     try {
+      // Read file bytes as base64 data URI
       const reader = new FileReader();
       reader.readAsDataURL(fileObj.file);
       reader.onload = async () => {
@@ -585,6 +687,7 @@ const StudentsPage = () => {
             },
           ],
         };
+        // Post email request with file payload to backend mailing service
         await axios.post(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email-with-attachments`,
           emailPayload,
@@ -598,8 +701,10 @@ const StudentsPage = () => {
     }
   };
 
+  // Compiles all session notes & attachments and sends complete session summary to student via email
   const handleSaveAll = async () => {
     const notesToSend = [...sessionNotes];
+    // Include pending unsaved draft text if present
     if (drafts.notes.trim())
       notesToSend.push({ text: drafts.notes, date: new Date().toISOString() });
 
@@ -613,6 +718,7 @@ const StudentsPage = () => {
     }
 
     try {
+      // Convert all uploaded files to base64 format in parallel
       const processedAttachments = await Promise.all(
         uploadedFiles.map((fileObj) => {
           return new Promise((resolve, reject) => {
@@ -629,6 +735,7 @@ const StudentsPage = () => {
         }),
       );
 
+      // Format session observation bullets for email message body
       const formattedNotes = notesToSend.map((n) => `• ${n.text}`).join("\n");
       const emailPayload = {
         email: selectedStudent.email,
@@ -637,6 +744,7 @@ const StudentsPage = () => {
         attachments: processedAttachments,
       };
 
+      // Send email through backend
       await axios.post(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email-with-attachments`,
         emailPayload,
@@ -651,6 +759,7 @@ const StudentsPage = () => {
     }
   };
 
+  // Adds or edits a session observation note in local state
   const handleSaveNote = (type, text, id) => {
     const newNote = {
       id: id || Date.now(),
@@ -663,11 +772,13 @@ const StudentsPage = () => {
       );
   };
 
+  // Deletes an observation note by ID
   const handleDeleteNote = (type, id) => {
     if (type === "notes")
       setSessionNotes((prev) => prev.filter((n) => n.id !== id));
   };
 
+  // Handles file selection with 5MB maximum size validation
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -675,6 +786,7 @@ const StudentsPage = () => {
         alert("File too large (>5MB).");
         return;
       }
+      // Store file object and create local preview object URL
       setUploadedFiles((prev) => [
         ...prev,
         { name: file.name, file: file, url: URL.createObjectURL(file) },
@@ -683,6 +795,7 @@ const StudentsPage = () => {
     }
   };
 
+  // Clears all unsaved session notes, drafts, and attached resources
   const handleDiscard = () => {
     if (window.confirm("Discard changes?")) {
       setSessionNotes([]);
@@ -696,12 +809,13 @@ const StudentsPage = () => {
       style={{ backgroundColor: "#04151f" }}
       className="min-h-screen font-sans flex flex-col h-screen overflow-hidden text-gray-800"
     >
+      {/* ================= PORTAL TOP HEADER BAR ================= */}
       <header
         style={{ backgroundColor: "#214e34" }}
         className="border-b border-white/10 px-4 md:px-6 h-16 flex items-center justify-between shrink-0 z-30 relative shadow-md"
       >
         <div className="flex items-center gap-3">
-          {/* ✅ Added Link to Dashboard with ChevronLeft Icon */}
+          {/* Mobile Back Button returning to Counselor Dashboard */}
           <Link
             to="/CounselorDashboard"
             className="md:hidden text-white hover:text-cyan-300"
@@ -709,12 +823,14 @@ const StudentsPage = () => {
             <ChevronLeft size={24} />
           </Link>
 
+          {/* Mobile Toggle Button for Active Cases drawer */}
           <button
             className="md:hidden text-white hover:text-cyan-300"
             onClick={() => setIsListOpen(!isListOpen)}
           >
             <Users size={24} />
           </button>
+          {/* MindNest Brand Logo & Title */}
           <div className="flex items-center gap-2">
             <img
               src="/logo.png"
@@ -726,6 +842,7 @@ const StudentsPage = () => {
             </span>
           </div>
         </div>
+        {/* Header Actions: Logout Link */}
         <div className="flex items-center gap-4">
           <Link
             to="/"
@@ -738,6 +855,7 @@ const StudentsPage = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile Sidebar Backdrop Overlay */}
         {isListOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-20 md:hidden"
@@ -745,11 +863,12 @@ const StudentsPage = () => {
           ></div>
         )}
 
+        {/* ================= ACTIVE CASES SIDEBAR ================= */}
         <aside
           style={{ backgroundColor: "#1b263b" }}
           className={`fixed md:relative inset-y-0 left-0 z-30 w-72 md:w-80 border-r border-white/10 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isListOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
-          {/* Sidebar content same as before */}
+          {/* Search Header */}
           <div className="p-5 border-b border-white/10 flex-none">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold text-white text-lg">Active Cases</h2>
@@ -757,7 +876,7 @@ const StudentsPage = () => {
                 {students.length} Active
               </span>
             </div>
-            {/* REMOVED TABS ROW HERE SINCE ONLY 1 TAB */}
+            {/* Student Search Input */}
             <div className="relative">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -770,6 +889,7 @@ const StudentsPage = () => {
               />
             </div>
           </div>
+          {/* Scrollable Student Case List */}
           <div className="flex-1 overflow-y-auto">
             {students.map((student) => (
               <SidebarItem
@@ -782,10 +902,13 @@ const StudentsPage = () => {
           </div>
         </aside>
 
+        {/* ================= MAIN STUDENT DETAILS VIEWPORT ================= */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {selectedStudent ? (
             <div className="max-w-6xl mx-auto space-y-6">
+              {/* Selected Student Banner Card */}
               <div className="bg-[#d8e2dc] rounded-2xl p-6 border border-gray-100 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                {/* Student Avatar, Name, and Booking Metadata */}
                 <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
                   <div className="relative">
                     <img
@@ -793,6 +916,7 @@ const StudentsPage = () => {
                       alt={selectedStudent.name}
                       className="w-20 h-20 rounded-full object-cover border-4 border-gray-100"
                     />
+                    {/* Status Dot */}
                     <div
                       className={`absolute bottom-0 right-0 w-5 h-5 border-2 border-white rounded-full ${selectedStudent.status === "confirmed" ? "bg-green-500" : "bg-yellow-400"}`}
                     ></div>
@@ -809,6 +933,7 @@ const StudentsPage = () => {
                         <span>•</span>
                         <span>Active Case</span>
                       </div>
+                      {/* Booking Time & Status Tag */}
                       <div className="mt-1 flex items-center justify-center md:justify-start gap-2 bg-blue-50 px-3 py-1 rounded-lg text-blue-700 text-xs font-semibold">
                         <Clock size={14} /> Booked:{" "}
                         {selectedStudent.lastAppointmentDate} at{" "}
@@ -822,6 +947,8 @@ const StudentsPage = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Accept / Reject (if pending) & Schedule Next Buttons */}
                 <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
                   {selectedStudent.status === "pending" && (
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -839,6 +966,7 @@ const StudentsPage = () => {
                       </button>
                     </div>
                   )}
+                  {/* Schedule Next Session Modal Trigger */}
                   <button
                     onClick={() => setIsScheduleModalOpen(true)}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-bold shadow-lg shadow-cyan-500/20 transition-all"
@@ -848,9 +976,14 @@ const StudentsPage = () => {
                 </div>
               </div>
 
+              {/* Patient Insights & Clinical Notes Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* === LEFT COLUMN: Metrics & Student Queries (Col-5) === */}
                 <div className="lg:col-span-5 space-y-6">
+                  {/* 14-Day Mood Timeline Chart */}
                   <MoodChartWidget moodData={studentMoods} />
+
+                  {/* Journal Engagement Metric Card */}
                   <div className="bg-[#d8e2dc] p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-4">
                       Engagement & Journaling
@@ -866,6 +999,8 @@ const StudentsPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Student Pre-session Booking Notes and Queries */}
                   <div className="bg-[#d8e2dc] p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                       <MessageCircle size={18} className="text-cyan-600" />{" "}
@@ -893,6 +1028,7 @@ const StudentsPage = () => {
                   </div>
                 </div>
 
+                {/* === RIGHT COLUMN: Clinical Notes & File Dispatch (Col-7) === */}
                 <div className="lg:col-span-7">
                   <div className="bg-[#d8e2dc] rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col">
                     <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-100 overflow-x-auto">
@@ -903,6 +1039,7 @@ const StudentsPage = () => {
                       </div>
                     </div>
                     <div className="p-4 md:p-6 space-y-6 flex-1 overflow-y-auto">
+                      {/* Clinical Observations Note Editor */}
                       <NoteEditor
                         title="Session Notes & Observations"
                         notes={sessionNotes}
@@ -914,10 +1051,12 @@ const StudentsPage = () => {
                         }
                       />
 
+                      {/* Attached Digital Resources Section */}
                       <div className="pt-6 border-t border-gray-100">
                         <label className="block text-xs font-bold text-cyan-700 uppercase tracking-wider mb-3">
                           Digital Resources
                         </label>
+                        {/* List of Attached Files */}
                         <div className="space-y-2 mb-3">
                           {uploadedFiles.map((file, idx) => (
                             <div
@@ -936,6 +1075,7 @@ const StudentsPage = () => {
                                   {file.name}
                                 </span>
                               </div>
+                              {/* File Action Buttons: Individual Send and Delete */}
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => handleSendSingleFile(file)}
@@ -958,6 +1098,7 @@ const StudentsPage = () => {
                             </div>
                           ))}
                         </div>
+                        {/* File Upload Selector */}
                         <label className="flex items-center gap-2 text-sm font-bold text-black hover:text-cyan-600 transition-colors px-1 cursor-pointer w-fit">
                           <Paperclip size={16} /> Attach Resource (PDF, Doc,
                           Image)
@@ -970,6 +1111,8 @@ const StudentsPage = () => {
                         </label>
                       </div>
                     </div>
+
+                    {/* Bottom Action Controls: Discard and Save & Email All */}
                     <div className="p-4 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 bg-gray-50/50 rounded-b-2xl">
                       <button
                         onClick={handleDiscard}
@@ -989,6 +1132,7 @@ const StudentsPage = () => {
               </div>
             </div>
           ) : (
+            // Placeholder when no student case is selected
             <div className="flex flex-col items-center justify-center h-full text-white/50 p-8 text-center">
               <Users size={48} className="mb-4 opacity-50" />
               <p>Select a student from the sidebar to view details.</p>
@@ -996,6 +1140,8 @@ const StudentsPage = () => {
           )}
         </main>
       </div>
+
+      {/* Booking Follow-Up Session Modal */}
       <ScheduleModal
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
