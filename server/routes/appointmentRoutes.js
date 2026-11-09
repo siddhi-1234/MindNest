@@ -1,7 +1,6 @@
 import express from "express";
 import Appointment from "../models/Appointment.js";
 
-// Initialize modular Express router for appointment endpoints
 const router = express.Router();
 
 /**
