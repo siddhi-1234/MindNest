@@ -75,7 +75,6 @@ router.put("/:uid", async (req, res) => {
     const { uid } = req.params;
     const { name, title, license, description, tags, schedule } = req.body;
 
-    // Unique License Check (Only if license is being updated)
     if (license) {
       const existingLicense = await Counselor.findOne({ license });
       if (existingLicense && existingLicense.uid !== uid) {
