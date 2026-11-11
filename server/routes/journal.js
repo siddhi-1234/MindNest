@@ -28,7 +28,7 @@ router.post("/", async (req, res) => {
 
     const journal = new Journals({
       uid,
-      title: title || "Untitled",
+      title: title || "Untitled", // Ensure title is saved
       content,
       mood: mood || "neutral", // Ensure mood is saved
       date,
