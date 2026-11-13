@@ -17,6 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+/* ================= CREATE JOURNAL ================= */
 router.post("/", async (req, res) => {
   try {
     const { uid, title, content, mood, date } = req.body;
