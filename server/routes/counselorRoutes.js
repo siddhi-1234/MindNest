@@ -3,6 +3,7 @@ import Counselor from "../models/Counselor.js"; // Ensure .js extension
 
 const router = express.Router();
 
+// ================= CREATE NEW COUNSELOR (Signup) =================
 router.post("/", async (req, res) => {
   try {
     const { uid, name, title, email, image, tags, description, license } =
