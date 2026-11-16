@@ -3,6 +3,7 @@ import Student from "../models/Student.js";
 
 const router = express.Router();
 
+// ✅ Route 1: Save a new student (Called during Signup)
 router.post("/", async (req, res) => {
   try {
     const { uid, name, email } = req.body;
