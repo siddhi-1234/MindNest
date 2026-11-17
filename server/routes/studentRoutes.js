@@ -8,7 +8,7 @@ router.post("/", async (req, res) => {
   try {
     const { uid, name, email } = req.body;
 
-
+    // Check if user already exists
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) {
       return res.status(200).json(existingStudent); // Return existing without error
