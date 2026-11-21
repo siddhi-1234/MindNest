@@ -58,7 +58,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-
+// ================= GET ALL COUNSELORS =================
 router.get("/", async (req, res) => {
   try {
     const counselors = await Counselor.find().sort({ createdAt: -1 });
