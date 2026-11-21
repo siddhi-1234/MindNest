@@ -10,7 +10,7 @@ router.post("/", async (req, res) => {
       req.body;
 
     // Basic validation - fail fast with a clear message instead of a
-
+    // confusing Mongoose ValidationError / 500 later.
     if (!uid || !name || !title || !email) {
       return res
         .status(400)
