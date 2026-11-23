@@ -139,7 +139,7 @@ const Resources = () => {
       readTime: "5 min read",
       title: "Quick Ways to reduces stress!",
       desc: "Taking care of your long-term mental and physical health is an important part of stress management",
-      image: "https://mithaahara.com/wp-content/uploads/2024/11/stress.png",
+      image: "https://leadlifewell.com/wp-content/uploads/2021/06/stress-balloon-scissors-R-1024x1024.jpg",
       content: `
         <h3 class="text-xl font-bold mb-2">Ways to Reduce Stress</h3>
         <p class="mb-4">A stress-free life involves managing challenges through physical wellness, mental practices, and lifestyle adjustments.</p>
@@ -367,11 +367,10 @@ const Resources = () => {
                 setActiveCategory(cat.name);
                 navigate(cat.path);
               }}
-              className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                activeCategory === cat.name
+              className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeCategory === cat.name
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
                   : "bg-[#1E293B] text-gray-300 hover:bg-gray-700 border border-gray-700"
-              }`}
+                }`}
             >
               {cat.icon && <cat.icon className="w-4 h-4" />}
               {cat.name}
@@ -506,11 +505,10 @@ const Resources = () => {
             {/* Widget Header with animated music icon when playing */}
             <div className="flex items-center gap-3 mb-6 relative z-10">
               <div
-                className={`p-2 rounded-lg transition-colors ${
-                  isPlaying
+                className={`p-2 rounded-lg transition-colors ${isPlaying
                     ? "bg-green-500/20 text-green-400"
                     : "bg-blue-600/20 text-blue-500"
-                }`}
+                  }`}
               >
                 {isPlaying ? (
                   <Music className="w-6 h-6 animate-pulse" />
@@ -533,11 +531,10 @@ const Resources = () => {
                 <div
                   key={i}
                   onClick={() => handleSongClick(song)}
-                  className={`flex items-center gap-3 group cursor-pointer p-2 rounded-lg transition border ${
-                    currentSong?.title === song.title
+                  className={`flex items-center gap-3 group cursor-pointer p-2 rounded-lg transition border ${currentSong?.title === song.title
                       ? "bg-blue-600/20 border-blue-500/50"
                       : "hover:bg-gray-700/50 border-transparent"
-                  }`}
+                    }`}
                 >
                   {/* Track album cover with play/pause overlay */}
                   <div className="relative w-10 h-10 shrink-0">
@@ -559,11 +556,10 @@ const Resources = () => {
                   {/* Track title and artist */}
                   <div className="flex-1 min-w-0">
                     <h4
-                      className={`text-sm font-bold truncate ${
-                        currentSong?.title === song.title
+                      className={`text-sm font-bold truncate ${currentSong?.title === song.title
                           ? "text-blue-400"
                           : "text-gray-200"
-                      }`}
+                        }`}
                     >
                       {song.title}
                     </h4>
