@@ -197,9 +197,25 @@ app.post("/api/chat", async (req, res) => {
       });
     }
     const textMsg = result.fulfillmentMessages?.find(
-      (m) => m.text && m.text.text,
+      (m) => m.text && m.text.text && m.text.text.length > 0 && m.text.text[0].trim() !== "",
     );
-    const replyText = textMsg ? textMsg.text.text[0] : result.fulfillmentText;
+    let replyText = textMsg ? textMsg.text.text[0] : (result.fulfillmentText || "");
+
+    // Fallback if intent matched in Dialogflow but has empty fulfillment text (e.g. User_Stress)
+    if (!replyText.trim() && (!finalPayloads || finalPayloads.length === 0)) {
+      if (result.intent?.displayName === "User_Stress") {
+        const stressReplies = [
+          "I hear you. Feeling stressed can be really overwhelming. Take a slow, deep breath with me—you are not alone.",
+          "Stress can be so exhausting. Remember to take things one step at a time. Would you like to check out some stress relief techniques?",
+          "It's completely okay to feel stressed. Let's take a pause together. Have you tried our breathing exercises in the Stress Relief section?",
+          "I'm here with you. When stress peaks, even stepping away for a few minutes can help reset your mind. How can I best support you right now?"
+        ];
+        replyText = stressReplies[Math.floor(Math.random() * stressReplies.length)];
+      } else {
+        replyText = "I'm listening and I'm here for you. Could you tell me a little more about what you're experiencing?";
+      }
+    }
+
     res.json({ reply: replyText, payload: finalPayloads });
   } catch (error) {
     console.error("Dialogflow Error:", error);
@@ -221,6 +237,11 @@ app.post("/dialogflow", (req, res) => {
   );
   intentMap.set("Default Fallback Intent", (agent) =>
     agent.add("I'm here with you."),
+  );
+  intentMap.set("User_Stress", (agent) =>
+    agent.add(
+      "I hear you. Feeling stressed can be really overwhelming. Take a slow, deep breath with me—you are not alone. Would you like to try some stress relief techniques?",
+    ),
   );
   intentMap.set("Crisis_Alert", handleCrisis);
   agent.handleRequest(intentMap);

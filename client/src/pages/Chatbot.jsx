@@ -115,6 +115,14 @@ const Chatbot = ({ isOpenProp, setIsOpenProp, autoSendQuery }) => {
         });
       }
 
+      // 3. Guarantee a response: if botMessages is empty, provide a fallback message
+      if (botMessages.length === 0) {
+        botMessages.push({
+          text: "I'm listening and I'm here with you. Could you tell me a little more about how you're feeling?",
+          isBot: true,
+        });
+      }
+
       // Append bot response and interactive widgets to messages list
       setMessages((prev) => [...prev, ...botMessages]);
     } catch (err) {
