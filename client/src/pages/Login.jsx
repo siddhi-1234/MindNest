@@ -27,7 +27,17 @@ export default function Login() {
       navigate("/dashboard");
     } catch (err) {
       // Set error message to inform user of login failure
-      setError(err.message);
+      if (err.code === "auth/unauthorized-domain") {
+        setError("Domain not authorized in Firebase. Please add this domain in Firebase Console -> Authentication -> Settings -> Authorized Domains.");
+      } else if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/user-not-found" ||
+        err.code === "auth/wrong-password"
+      ) {
+        setError("Invalid email or password.");
+      } else {
+        setError(err.message || "Failed to log in.");
+      }
     }
   };
 

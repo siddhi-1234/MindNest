@@ -1,20 +1,24 @@
-import mongoose from "mongoose"; //mongoose gives you functions to define schemas/models and to manage a connection
+import mongoose from "mongoose";
+import dns from "dns";
 
-/* Defines an async arrow function named connectDB.
-Because it’s async, it can use await inside and returns a Promise */
+// Fix for querySrv ENOTFOUND on Render / cloud environments where internal DNS cannot resolve SRV records
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+} catch (e) {
+  console.warn("Could not set custom DNS servers:", e.message);
+}
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI); //Calls mongoose.connect() to open a connection to MongoDB. process.env.MONGO_URI is expected to be a connection string provided in environment variables
-    //returns a Promise — await waits for the connection to succeed (or throw).
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB Connected Successfully");
   } catch (err) {
     console.error(`MongoDB Connection Failed: ${err.message}`);
-    // Exiting prevents the server from starting properly, but if Render requires a running instance, maybe we shouldn't exit?
-    // Actually exiting is normal for fatal DB errors, but let's at least log the error so it's visible in Render.
-    process.exit(1);
+    // Do not call process.exit(1) on Render, as it causes an infinite crash loop
+    // and prevents Render from detecting open ports and marking the service live.
+    console.log("Retrying MongoDB connection in 5 seconds...");
+    setTimeout(connectDB, 5000);
   }
 };
 
-//Exports the connectDB function so other files can import
 export default connectDB;

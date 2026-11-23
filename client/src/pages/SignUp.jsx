@@ -46,6 +46,7 @@ export default function SignUp() {
       return;
     }
 
+    let createdUser = null;
     try {
       // 1. Create student account in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
@@ -53,11 +54,12 @@ export default function SignUp() {
         email,
         password,
       );
-      const user = userCredential.user;
+      createdUser = userCredential.user;
 
       // 2. Persist student profile record to backend MongoDB database
-      await axios.post(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/students`, {
-        uid: user.uid,
+      const apiUrl = (process.env.REACT_APP_API_URL || "http://localhost:5000").trim();
+      await axios.post(`${apiUrl}/api/students`, {
+        uid: createdUser.uid,
         name: name,
         email: email,
       });
@@ -65,8 +67,27 @@ export default function SignUp() {
       // 3. Redirect to login page on successful account creation
       navigate("/Login");
     } catch (err) {
-      // Display error message from Firebase or backend API
-      setError(err.message);
+      // Rollback Firebase user if backend record creation fails, preventing orphaned trapped accounts
+      if (createdUser && err.response) {
+        try {
+          await createdUser.delete();
+        } catch (cleanupErr) {
+          console.error("Cleanup error deleting orphaned user:", cleanupErr);
+        }
+      }
+
+      // Display actionable error messages
+      if (err.code === "auth/unauthorized-domain") {
+        setError("Domain not authorized in Firebase. Please add this domain to Firebase Console -> Authentication -> Settings -> Authorized Domains.");
+      } else if (err.code === "auth/email-already-in-use") {
+        setError("This email is already registered. Please log in instead.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else if (err.response?.status === 503 || err.code === "ERR_NETWORK") {
+        setError("Backend server is currently sleeping or unavailable. Please wait 1 minute and try again.");
+      } else {
+        setError(err.message || "Failed to create account. Please try again.");
+      }
     } finally {
       // Reset loading flag regardless of outcome
       setLoading(false);
