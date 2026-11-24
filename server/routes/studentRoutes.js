@@ -3,6 +3,17 @@ import Student from "../models/Student.js";
 
 const router = express.Router();
 
+// Retrieve registered students for counselor email resolution
+router.get("/", async (req, res) => {
+  try {
+    const students = await Student.find({}, "uid name email").lean();
+    res.json(students);
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 // ✅ Route 1: Save a new student (Called during Signup)
 router.post("/", async (req, res) => {
   try {

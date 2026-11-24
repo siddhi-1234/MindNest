@@ -43,7 +43,6 @@ const STANDARD_TIME_SLOTS = [
   "04:00 PM",
 ];
 
-
 /**
  * ScheduleModal Component
  * Modal dialog enabling counselors to book follow-up consultations with students.
@@ -362,9 +361,12 @@ const AvailabilitySettings = ({ counselorId }) => {
   const saveAvailability = async () => {
     setLoading(true);
     try {
-      await axios.put(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors/${counselorId}`, {
-        schedule,
-      });
+      await axios.put(
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors/${counselorId}`,
+        {
+          schedule,
+        },
+      );
       alert("Availability updated successfully!");
     } catch (err) {
       console.error(err);
@@ -513,7 +515,9 @@ const StudentsPage = () => {
     const fetchCounselorInfo = async () => {
       if (currentUser) {
         try {
-          const res = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`);
+          const res = await axios.get(
+            `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/counselors`,
+          );
           const me = res.data.find((c) => c.uid === currentUser.uid);
           setCurrentCounselorName(me ? me.name : "Counselor");
         } catch (error) {
@@ -528,10 +532,22 @@ const StudentsPage = () => {
   const fetchData = async () => {
     if (!currentUser) return;
     try {
-      const apptRes = await axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`);
+      const [apptRes, studentRes] = await Promise.all([
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/appointments`,
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/students`,
+        ),
+      ]);
       // Filter appointments belonging specifically to the logged-in counselor
       const myAppointments = apptRes.data.filter(
         (appt) => appt.counselorId === currentUser.uid,
+      );
+      const studentsByUid = new Map(
+        (Array.isArray(studentRes.data) ? studentRes.data : []).map(
+          (student) => [student.uid, student],
+        ),
       );
       const uniqueStudentsMap = new Map();
 
@@ -540,12 +556,13 @@ const StudentsPage = () => {
         if (
           !uniqueStudentsMap.has(appt.studentName) ||
           new Date(appt.createdAt) >
-          new Date(uniqueStudentsMap.get(appt.studentName).createdAt)
+            new Date(uniqueStudentsMap.get(appt.studentName).createdAt)
         ) {
+          const studentRecord = studentsByUid.get(appt.studentUid);
           uniqueStudentsMap.set(appt.studentName, {
             id: appt.studentUid || appt._id,
             name: appt.studentName,
-            email: appt.studentEmail,
+            email: appt.studentEmail || studentRecord?.email,
             concern: appt.concern || "General",
             lastAppointmentDate: appt.date,
             lastAppointmentTime: appt.time,
@@ -625,10 +642,15 @@ const StudentsPage = () => {
     if (!selectedStudent || !selectedStudent.appointmentId) return;
     try {
       const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-      await axios.put(`${API_URL}/api/appointments/${selectedStudent.appointmentId}`, {
-        status,
-      });
-      alert(`Request has been ${status === "confirmed" ? "accepted" : "rejected"} successfully.`);
+      await axios.put(
+        `${API_URL}/api/appointments/${selectedStudent.appointmentId}`,
+        {
+          status,
+        },
+      );
+      alert(
+        `Request has been ${status === "confirmed" ? "accepted" : "rejected"} successfully.`,
+      );
       await fetchData(); // Refresh data to reflect status change
     } catch (err) {
       console.error("Error updating status:", err);
@@ -697,7 +719,11 @@ const StudentsPage = () => {
       reader.onerror = () => alert("Error reading file.");
     } catch (error) {
       console.error(error);
-      alert("Failed to send file.");
+      alert(
+        error.response?.data?.detail ||
+          error.response?.data?.error ||
+          "Failed to send file.",
+      );
     }
   };
 
@@ -755,7 +781,11 @@ const StudentsPage = () => {
       );
     } catch (error) {
       console.error(error);
-      alert("Failed to send email.");
+      alert(
+        error.response?.data?.detail ||
+          error.response?.data?.error ||
+          "Failed to send email.",
+      );
     }
   };
 

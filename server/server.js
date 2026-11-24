@@ -116,10 +116,16 @@ app.post("/api/send-email", async (req, res) => {
 
 app.post("/api/send-email-with-attachments", async (req, res) => {
   const { email, subject, message, attachments } = req.body;
+  if (!email || !subject) {
+    return res
+      .status(400)
+      .json({ error: "Student email and subject are required" });
+  }
+
   const mailOptions = {
     from: `"MindNest Counselor" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: subject,
+    subject,
     text: message,
     attachments: attachments || [],
   };
@@ -127,7 +133,11 @@ app.post("/api/send-email-with-attachments", async (req, res) => {
     await transporter.sendMail(mailOptions);
     res.status(200).json({ message: "Email sent successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to send email" });
+    console.error("Email attachment error:", error);
+    res.status(500).json({
+      error: "Failed to send email",
+      detail: error.message,
+    });
   }
 });
 
@@ -197,9 +207,15 @@ app.post("/api/chat", async (req, res) => {
       });
     }
     const textMsg = result.fulfillmentMessages?.find(
-      (m) => m.text && m.text.text && m.text.text.length > 0 && m.text.text[0].trim() !== "",
+      (m) =>
+        m.text &&
+        m.text.text &&
+        m.text.text.length > 0 &&
+        m.text.text[0].trim() !== "",
     );
-    let replyText = textMsg ? textMsg.text.text[0] : (result.fulfillmentText || "");
+    let replyText = textMsg
+      ? textMsg.text.text[0]
+      : result.fulfillmentText || "";
 
     // Fallback if intent matched in Dialogflow but has empty fulfillment text (e.g. User_Stress)
     if (!replyText.trim() && (!finalPayloads || finalPayloads.length === 0)) {
@@ -208,11 +224,13 @@ app.post("/api/chat", async (req, res) => {
           "I hear you. Feeling stressed can be really overwhelming. Take a slow, deep breath with me—you are not alone.",
           "Stress can be so exhausting. Remember to take things one step at a time. Would you like to check out some stress relief techniques?",
           "It's completely okay to feel stressed. Let's take a pause together. Have you tried our breathing exercises in the Stress Relief section?",
-          "I'm here with you. When stress peaks, even stepping away for a few minutes can help reset your mind. How can I best support you right now?"
+          "I'm here with you. When stress peaks, even stepping away for a few minutes can help reset your mind. How can I best support you right now?",
         ];
-        replyText = stressReplies[Math.floor(Math.random() * stressReplies.length)];
+        replyText =
+          stressReplies[Math.floor(Math.random() * stressReplies.length)];
       } else {
-        replyText = "I'm listening and I'm here for you. Could you tell me a little more about what you're experiencing?";
+        replyText =
+          "I'm listening and I'm here for you. Could you tell me a little more about what you're experiencing?";
       }
     }
 
