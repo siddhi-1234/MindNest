@@ -32,6 +32,12 @@ import { Link } from "react-router-dom";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL?.trim() ||
+  (window.location.hostname === "localhost"
+    ? "http://localhost:5000"
+    : "https://mindnest-backend.onrender.com");
+
 // Predefined hourly consultation slots available for scheduling
 const STANDARD_TIME_SLOTS = [
   "09:00 AM",
@@ -693,30 +699,33 @@ const StudentsPage = () => {
 
     try {
       // Read file bytes as base64 data URI
-      const reader = new FileReader();
-      reader.readAsDataURL(fileObj.file);
-      reader.onload = async () => {
-        const base64Content = reader.result.split(",")[1];
-        const emailPayload = {
-          email: selectedStudent.email,
-          subject: `Resource Shared: ${fileObj.name}`,
-          message: `Dear ${selectedStudent.name},\n\nPlease find the attached resource: "${fileObj.name}" shared by your counselor.\n\nBest regards,\n${currentCounselorName}\nMindNest Team`,
-          attachments: [
-            {
-              filename: fileObj.name,
-              content: base64Content,
-              encoding: "base64",
-            },
-          ],
-        };
-        // Post email request with file payload to backend mailing service
-        await axios.post(
-          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email-with-attachments`,
-          emailPayload,
-        );
-        alert(`File "${fileObj.name}" sent successfully!`);
+      const base64Content = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(fileObj.file);
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = () => reject(new Error("Error reading file."));
+      });
+
+      const emailPayload = {
+        email: selectedStudent.email,
+        subject: `Resource Shared: ${fileObj.name}`,
+        message: `Dear ${selectedStudent.name},\n\nPlease find the attached resource: "${fileObj.name}" shared by your counselor.\n\nBest regards,\n${currentCounselorName}\nMindNest Team`,
+        attachments: [
+          {
+            filename: fileObj.name,
+            content: base64Content,
+            encoding: "base64",
+          },
+        ],
       };
-      reader.onerror = () => alert("Error reading file.");
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/send-email-with-attachments`,
+        emailPayload,
+      );
+      alert(
+        response.data?.message || `File "${fileObj.name}" sent successfully!`,
+      );
     } catch (error) {
       console.error(error);
       alert(
@@ -772,7 +781,7 @@ const StudentsPage = () => {
 
       // Send email through backend
       await axios.post(
-        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/send-email-with-attachments`,
+        `${API_BASE_URL}/api/send-email-with-attachments`,
         emailPayload,
       );
       setDrafts((prev) => ({ ...prev, notes: "" }));
