@@ -5,7 +5,7 @@ const counselorSchema = new mongoose.Schema(
     uid: {
       type: String,
       required: true,
-      unique: true, // Firebase UID
+      unique: true,
     },
     name: {
       type: String,
